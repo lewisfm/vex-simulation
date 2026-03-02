@@ -1,0 +1,98 @@
+//! VEXos Task Scheduler Functions
+
+use core::ffi::{c_char, c_int, c_void};
+use std::time::{Duration, Instant};
+
+use parking_lot::Mutex;
+use vex_sdk::V5_TouchEvent;
+
+use crate::{canvas::HEADER_HEIGHT, display::DISPLAY};
+
+#[unsafe(no_mangle)]
+pub extern "C" fn vexTaskAdd(
+    callback: unsafe extern "C" fn() -> c_int,
+    interval: c_int,
+    label: *const c_char,
+) {
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn vexTaskGetCallbackAndId(index: u32, callback_id: *mut c_int) -> *mut c_void {
+    core::ptr::null_mut()
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn vexTaskSleep(time: u32) {}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn vexTaskHardwareConcurrency() -> i32 {
+    0
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn vexBackgroundProcessing() {}
+
+struct Task {
+    func: fn(),
+    interval: Duration,
+    last_run: Option<Instant>,
+}
+
+impl Task {
+    const fn new(func: fn(), interval: Duration) -> Self {
+        Self {
+            func,
+            interval,
+            last_run: None,
+        }
+    }
+
+    fn poll(&mut self, now: Instant) {
+        if let Some(last_run) = self.last_run {
+            if (last_run + self.interval) < now {
+                self.last_run = Some(now);
+                (self.func)();
+            }
+        } else {
+            self.last_run = Some(now);
+            (self.func)();
+        }
+    }
+}
+
+static TASKS: Mutex<[Task; 0]> = Mutex::new([
+    // Should this be a task? I'm not sure if touch data updates automatically.
+    // Task::new(update_touch_status, Duration::from_millis(10)),
+]);
+
+pub fn update_touch_status() {
+    let mut display = DISPLAY.lock();
+
+    if display.mouse_down {
+        if display.touch.lastEvent == V5_TouchEvent::kTouchEventRelease {
+            display.touch.lastEvent = V5_TouchEvent::kTouchEventPress;
+            display.touch.pressCount += 1;
+        } else {
+            display.touch.lastEvent = V5_TouchEvent::kTouchEventPressAuto;
+        }
+
+        display.touch.lastXpos = display.mouse_coords.x as i16;
+        display.touch.lastYpos = (display.mouse_coords.y - HEADER_HEIGHT) as i16;
+    } else {
+        if display.touch.lastEvent != V5_TouchEvent::kTouchEventRelease {
+            display.touch.releaseCount += 1;
+        }
+
+        display.touch.lastEvent = V5_TouchEvent::kTouchEventRelease;
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn vexTasksRun() {
+    let mut tasks = TASKS.lock();
+    let now = Instant::now();
+
+    for task in &mut *tasks {
+        task.poll(now);
+    }
+}

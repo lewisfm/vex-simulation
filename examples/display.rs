@@ -1,5 +1,8 @@
 use std::{
-    f64::consts::{PI, TAU}, process::exit, thread, time::Duration
+    f64::consts::{PI, TAU},
+    process::exit,
+    thread,
+    time::Duration,
 };
 
 use embedded_graphics::{
@@ -8,17 +11,17 @@ use embedded_graphics::{
 };
 use tinybmp::Bmp;
 use tracing_subscriber::EnvFilter;
-use vex_sdk_desktop::sdk::*;
+use vex_sdk::*;
+use vexide::prelude::Peripherals;
 
-fn main() {
-    // e.g. RUST_LOG=debug,vex_sdk_desktop=trace
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .init();
+mod common;
 
-    vex_sdk_desktop::run_simulator(|| {
-        println!("Hello, world");
+common::create_main!(entry);
 
+async fn entry(_p: Peripherals) {
+    println!("Hello world!");
+
+    unsafe {
         vexDisplayForegroundColor(0xFF_FF_FF);
         vexDisplayRectFill(0, -10, 50, 50);
         vexDisplayForegroundColor(0xFF_00_FF);
@@ -59,12 +62,16 @@ fn main() {
             );
         }
 
-        let string = c"Vex V6!";
-        unsafe {
-            // vexDisplayTextSize(1, 1);
-            vexDisplayPixelSet(105, 180);
-            vexDisplayPrintf(105, 180, 0, string.as_ptr());
-        }
+        let string = c"Vex V5!";
+        vexDisplayTextSize(1, 1);
+        vexDisplayPixelSet(105, 180);
+        vexDisplayPrintf(105, 180, 0, string.as_ptr());
+
+        let string = c"It does small text too";
+        vexDisplayTextSize(1, 4);
+        vexDisplayBackgroundColor(0xFF_FF_FF);
+        vexDisplayForegroundColor(0x00_00_00);
+        vexDisplayPrintf(250, 30, 1, string.as_ptr());
 
         let mut velocity = 0.0;
         let mut position = -50.0;
@@ -81,7 +88,6 @@ fn main() {
 
             let angle = (position / 50.0 + 1.0) * PI;
             let (y, x) = angle.sin_cos();
-            // println!("({x}, {y})");
 
             let x1 = 250 + (x * 20.0) as i32;
             let x2 = 250 - (x * 20.0) as i32;
@@ -92,11 +98,10 @@ fn main() {
             vexDisplayForegroundColor(0xFF_FF_FF);
             vexDisplayCircleFill(250, 100, 20);
             vexDisplayForegroundColor(0x00_00_00);
-            // println!("{:?}", (x1, y1, x2, y2));
             vexDisplayLineDraw(x1, y1, x2, y2);
 
             vexDisplayRender(true, false);
+            vexTasksRun();
         }
-    })
-    .unwrap();
+    }
 }

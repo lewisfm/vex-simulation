@@ -9,6 +9,7 @@ pub mod sdk;
 mod macos;
 
 use std::{
+    path::{Path, PathBuf},
     sync::OnceLock,
     thread::{self},
     time::{Duration, Instant},
@@ -33,6 +34,14 @@ enum SimEvent {}
 static SIM_APP: OnceLock<EventLoopProxy<SimEvent>> = OnceLock::new();
 
 pub fn run_simulator(run_app: impl FnOnce() + Send + 'static) -> Result<()> {
+    let mut args = std::env::args();
+    let path = args.next().unwrap_or_else(|| "Simulator".to_string());
+
+    let basename = Path::new(&path)
+        .file_name()
+        .and_then(|str| str.to_str())
+        .unwrap_or(&path);
+
     let event_loop = EventLoop::with_user_event().build().unwrap();
     SIM_APP
         .set(event_loop.create_proxy())
@@ -42,7 +51,7 @@ pub fn run_simulator(run_app: impl FnOnce() + Send + 'static) -> Result<()> {
         .map_err(|e| anyhow!(e.to_string()))
         .context("Failed to create display rendering context")?;
 
-    let mut simulator = Simulator::new(context, run_app);
+    let mut simulator = Simulator::new(basename.to_string(), context, run_app);
     event_loop.run_app(&mut simulator)?;
 
     Ok(())
@@ -53,15 +62,17 @@ struct Simulator<E> {
     context: DisplayCtx,
     entrypoint: Option<E>,
     last_frame_time: Option<Instant>,
+    program_name: String,
 }
 
 impl<E> Simulator<E> {
-    fn new(context: DisplayCtx, run_app: E) -> Self {
+    fn new(name: String, context: DisplayCtx, run_app: E) -> Self {
         Self {
             sim_display: None,
             context,
             entrypoint: Some(run_app),
             last_frame_time: None,
+            program_name: name,
         }
     }
 
@@ -81,7 +92,7 @@ impl<E> Simulator<E> {
 impl<E: FnOnce() + Send + 'static> ApplicationHandler<SimEvent> for Simulator<E> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.sim_display.is_none() {
-            match SimDisplayWindow::open(event_loop, &self.context) {
+            match SimDisplayWindow::open(event_loop, &self.context, &self.program_name) {
                 Ok(sim_display) => self.sim_display = Some(sim_display),
                 Err(error) => error!(%error, "Failed to open VEX V5 Display window"),
             }

@@ -1,0 +1,35 @@
+[package]
+name = "vex-sdk-desktop"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.102"
+bytemuck = { version = "1.25.0", features = ["must_cast"] }
+fast_image_resize = { version = "6.0.0", features = ["bytemuck"] }
+line_drawing = "1.0.1"
+image = { version = "0.25.9", default-features = false, features = ["png"] }
+parking_lot = "0.12.5"
+softbuffer = "0.4.8"
+tracing = "0.1.44"
+vex-sdk = "0.28.0"
+winit = "0.30.12"
+font-kit = { version = "0.14.3", default-features = false, features = [
+    "loader-freetype",
+], git = "https://github.com/servo/font-kit" }
+pathfinder_geometry = "0.5.1"
+freetype-sys = { version = "0.23.0", features = ["bundled"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+dispatch2 = "0.3.1"
+objc2 = "0.6.4"
+objc2-foundation = { version = "0.3.2", features = ["NSThread"] }
+objc2-app-kit = { version = "0.3.2", features = [
+    "objc2-core-graphics",
+    "NSImage",
+    "NSView",
+] }
+objc2-core-graphics = { version = "0.3.2", features = [
+    "CGDataProvider",
+    "CGColorSpace",
+] }

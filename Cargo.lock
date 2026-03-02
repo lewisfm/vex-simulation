@@ -263,12 +263,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
-name = "color"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a18ef4657441fb193b65f34dc39b3781f0dfec23d3bd94d0eeb4e88cde421edb"
-
-[[package]]
 name = "combine"
 version = "4.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -571,6 +565,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "examples"
+version = "0.1.0"
+dependencies = [
+ "embedded-graphics",
+ "tinybmp",
+ "tracing-subscriber",
+ "vex-sdk 0.28.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "vex-sdk-desktop",
+ "vexide",
+]
+
+[[package]]
 name = "fast_image_resize"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -692,26 +698,25 @@ dependencies = [
 
 [[package]]
 name = "futures-core"
-version = "0.3.31"
+version = "0.3.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05f29059c0c2090612e8d742178b0580d2dc940c837851ad723096f87af6663e"
+checksum = "7e3450815272ef58cec6d564423f6e755e25379b217b0bc688e295ba24df6b1d"
 
 [[package]]
 name = "futures-task"
-version = "0.3.31"
+version = "0.3.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f90f7dce0722e95104fcb095585910c0977252f286e354b5e3bd38902cd99988"
+checksum = "037711b3d59c33004d3856fbdc83b99d4ff37a24768fa1be9ce3538a1cde4393"
 
 [[package]]
 name = "futures-util"
-version = "0.3.31"
+version = "0.3.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9fa08315bb612088cc391249efdc3bc77536f16c91f6cf495e6fbe85b20a4a81"
+checksum = "389ca41296e6190b48053de0321d02a77f32f8a5d2461dd38762c0593805c6d6"
 dependencies = [
  "futures-core",
  "futures-task",
  "pin-project-lite",
- "pin-utils",
 ]
 
 [[package]]
@@ -1544,12 +1549,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3b3cff922bd51709b605d9ead9aa71031d81447142d828eb4a6eba76fe619f9b"
 
 [[package]]
-name = "pin-utils"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
-
-[[package]]
 name = "pkg-config"
 version = "0.3.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1685,9 +1684,9 @@ dependencies = [
 
 [[package]]
 name = "regex-automata"
-version = "0.4.13"
+version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5276caf25ac86c8d810222b3dbb938e512c55c6831a10f3e6ed1c93b84041f1c"
+checksum = "6e1dd4122fc1595e8162618945476892eefca7b88c52820e74af6262213cae8f"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -1696,15 +1695,15 @@ dependencies = [
 
 [[package]]
 name = "regex-syntax"
-version = "0.8.8"
+version = "0.8.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a2d987857b319362043e95f5353c0535c1f58eec5336fdfcf626430af7def58"
+checksum = "dc897dd8d9e8bd1ed8cdad82b5966c3e0ecae09fb1907d58efaa013543185d0a"
 
 [[package]]
 name = "rgb"
-version = "0.8.52"
+version = "0.8.53"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c6a884d2998352bb4daf0183589aec883f16a6da1f4dde84d8e2e9a5409a1ce"
+checksum = "47b34b781b31e5d73e9fbc8689c70551fd1ade9a19e3e28cfec8580a79290cc4"
 dependencies = [
  "bytemuck",
 ]
@@ -2230,9 +2229,9 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "vex-libunwind"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c67f0c766183d5b9f18a5b2d72b4615fe54fd9fedf5f07dd455d68095942723d"
+checksum = "a14f4b4031c75a3b7d89d698a88472c6c2085df2f7fa4d766b8d12942ea25993"
 dependencies = [
  "snafu",
  "vex-libunwind-sys",
@@ -2240,9 +2239,9 @@ dependencies = [
 
 [[package]]
 name = "vex-libunwind-sys"
-version = "0.1.1"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03d9beed7d21b083fd5bfdb1bebcafa539ba2584891e429f889dfa298cab858d"
+checksum = "87390bdd4ade659ce88cc090492fecc5dfb0e74b00572e81a438a85bde44d814"
 
 [[package]]
 name = "vex-sdk"
@@ -2251,16 +2250,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b95fb7c2b31cb4a3e80b86ea47fc2abf21f8065dfd7d603657c44fb56d21b22d"
 
 [[package]]
+name = "vex-sdk"
+version = "0.28.0"
+source = "git+https://github.com/vexide/vex-sdk?branch=rc#335a51c58208606a08d1c25fc55cbd9ab05dc318"
+
+[[package]]
 name = "vex-sdk-desktop"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytemuck",
- "color",
  "dispatch2",
- "embedded-graphics",
  "fast_image_resize",
  "font-kit",
+ "freetype-sys",
  "image",
  "line_drawing",
  "objc2 0.6.4",
@@ -2270,21 +2273,33 @@ dependencies = [
  "parking_lot",
  "pathfinder_geometry",
  "softbuffer",
- "tinybmp",
  "tracing",
- "tracing-subscriber",
- "vex-sdk",
- "vexide",
+ "vex-sdk 0.28.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "winit",
+]
+
+[[package]]
+name = "vex-sdk-jumptable"
+version = "0.2.0-rc.1"
+source = "git+https://github.com/vexide/vex-sdk?branch=rc#335a51c58208606a08d1c25fc55cbd9ab05dc318"
+dependencies = [
+ "vex-sdk 0.28.0 (git+https://github.com/vexide/vex-sdk?branch=rc)",
+]
+
+[[package]]
+name = "vex-sdk-mock"
+version = "0.2.0-rc.1"
+source = "git+https://github.com/vexide/vex-sdk?branch=rc#335a51c58208606a08d1c25fc55cbd9ab05dc318"
+dependencies = [
+ "vex-sdk 0.28.0 (git+https://github.com/vexide/vex-sdk?branch=rc)",
 ]
 
 [[package]]
 name = "vexide"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c993f1161bf2f4c852c4bd75e2eff95520d6cc03f3a366285ceb227783bd51e"
+source = "git+https://github.com/vexide/vexide.git?branch=feat%2Frust-1.95#b858f0d501299d919d817f29ed896765991d2d50"
 dependencies = [
- "vex-sdk",
+ "vex-sdk 0.28.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "vexide-async",
  "vexide-core",
  "vexide-devices",
@@ -2295,34 +2310,31 @@ dependencies = [
 [[package]]
 name = "vexide-async"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "935d1076cb89580f928ad036a1cefe360201e4f1c47120c6e1b35fea5beb6afb"
+source = "git+https://github.com/vexide/vexide.git?branch=feat%2Frust-1.95#b858f0d501299d919d817f29ed896765991d2d50"
 dependencies = [
  "async-lock",
  "async-task",
  "futures-util",
- "vex-sdk",
+ "vex-sdk 0.28.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "waker-fn",
 ]
 
 [[package]]
 name = "vexide-core"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd71ec659102e83112e80a652a119629e6a42ed6aa16281c94732f61e4021bd4"
+source = "git+https://github.com/vexide/vexide.git?branch=feat%2Frust-1.95#b858f0d501299d919d817f29ed896765991d2d50"
 dependencies = [
  "bitflags 2.10.0",
  "futures-core",
  "pin-project",
  "vex-libunwind",
- "vex-sdk",
+ "vex-sdk 0.28.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "vexide-devices"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2905ccde48b6756ded33f8c160688e7e27c3d804ae038ffa56665cc5f4a8512"
+source = "git+https://github.com/vexide/vexide.git?branch=feat%2Frust-1.95#b858f0d501299d919d817f29ed896765991d2d50"
 dependencies = [
  "bitflags 2.10.0",
  "bytemuck",
@@ -2331,15 +2343,14 @@ dependencies = [
  "rgb",
  "smart-leds-trait",
  "snafu",
- "vex-sdk",
+ "vex-sdk 0.28.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "vexide-core",
 ]
 
 [[package]]
 name = "vexide-macro"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7318b7f3ac08c356b97ef661c7646d1e8bc9202039e2adc8203b582473c086ea"
+source = "git+https://github.com/vexide/vexide.git?branch=feat%2Frust-1.95#b858f0d501299d919d817f29ed896765991d2d50"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2349,15 +2360,16 @@ dependencies = [
 [[package]]
 name = "vexide-startup"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88adb3fa366c8242359e4276c347743e5b9cac1015bb5ef62e14b77b60d7940e"
+source = "git+https://github.com/vexide/vexide.git?branch=feat%2Frust-1.95#b858f0d501299d919d817f29ed896765991d2d50"
 dependencies = [
  "bitflags 2.10.0",
  "compile-time",
  "talc",
  "vex-libunwind",
  "vex-libunwind-sys",
- "vex-sdk",
+ "vex-sdk 0.28.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "vex-sdk-jumptable",
+ "vex-sdk-mock",
  "vexide-core",
 ]
 

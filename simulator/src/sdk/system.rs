@@ -142,11 +142,7 @@ pub unsafe extern "C" fn vex_printf(format: *const c_char, args: ...) -> i32 {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vex_sprintf(
-    out: *mut c_char,
-    format: *const c_char,
-    args: ...
-) -> i32 {
+pub unsafe extern "C" fn vex_sprintf(out: *mut c_char, format: *const c_char, args: ...) -> i32 {
     -1
 }
 

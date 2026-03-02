@@ -20,12 +20,29 @@ use pathfinder_geometry::{
     vector::{Vector2F, Vector2I},
 };
 
-static MONOSPACE_FONT: &[u8] = include_bytes!("../../assets/font/NotoMono-Regular.ttf");
-static PROPORTIONAL_FONT: &[u8] = include_bytes!("../../assets/font/NotoSans-Regular.ttf");
+use crate::canvas::Rect;
 
 static FONT_MAP: &[(&str, f32, &[u8])] = &[
-    ("NotoSansMono", 49.0, MONOSPACE_FONT),
-    ("NotoSansLatin", 54.0, PROPORTIONAL_FONT),
+    (
+        "NotoSansMono_49pt",
+        49.0,
+        include_bytes!("NotoMono-Regular.ttf"),
+    ),
+    (
+        "NotoSansMono_39pt",
+        39.0,
+        include_bytes!("NotoMono-Regular.ttf"),
+    ),
+    (
+        "NotoSansLatin_54pt",
+        54.0,
+        include_bytes!("NotoSans-Regular.ttf"),
+    ),
+    (
+        "Monospace_18pt",
+        18.0,
+        include_bytes!("Monospace-Regular.ttf"),
+    ),
 ];
 
 const PRE_RENDERED_CHARS: RangeInclusive<char> = (32u8 as char)..=(126u8 as char);
@@ -49,8 +66,8 @@ impl FontLoader {
         }
 
         // Font name aliases for public API
-        fonts.insert("monospace", fonts["NotoSansMono"].clone());
-        fonts.insert("proportional", fonts["NotoSansLatin"].clone());
+        fonts.insert("monospace", fonts["NotoSansMono_49pt"].clone());
+        fonts.insert("proportional", fonts["NotoSansLatin_54pt"].clone());
 
         Self { fonts }
     }
@@ -85,9 +102,20 @@ impl PreRenderedFont {
         &self.name
     }
 
-    pub fn cap_height(&self, numerator: u32, denominator: u32) -> u32 {
-        let scale = self.point_size / self.metrics.units_per_em as f32;
-        (self.metrics.ascent * scale * numerator as f32 / denominator as f32) as u32
+    /// Get the conversion factor for converting metrics measurements to points.
+    const fn scale(&self) -> f32 {
+        self.point_size / self.metrics.units_per_em as f32
+    }
+
+    /// Get the scaled distance from the baseline to the top of the font.
+    pub fn ascent(&self, numerator: u32, denominator: u32) -> u32 {
+        (self.metrics.ascent * self.scale() * numerator as f32 / denominator as f32) as u32
+    }
+
+    /// Get the scaled maximum possible glyph height of the font.
+    pub fn height(&self, numerator: u32, denominator: u32) -> u32 {
+        (self.metrics.bounding_box.height() * self.scale() * numerator as f32 / denominator as f32)
+            as u32
     }
 
     pub fn glyph_for_char(&self, character: char) -> &RasterizedGlyph {
@@ -177,7 +205,7 @@ impl RasterizedGlyph {
     }
 
     /// Returns the dimensions of the glyph, scaled by the given fraction.
-    pub fn scaled_bounds(&self, numerator: u32, denominator: u32) -> RectI {
+    pub fn scaled_raster_bounds(&self, numerator: u32, denominator: u32) -> RectI {
         let scaled_size = self.size.to_f32() * numerator as f32 / denominator as f32;
         let scaled_offset = self.offset.to_f32() * numerator as f32 / denominator as f32;
         RectF::new(scaled_offset, scaled_size).to_i32()

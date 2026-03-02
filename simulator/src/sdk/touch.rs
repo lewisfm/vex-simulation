@@ -1,0 +1,19 @@
+//! Brain Screen Touchscreen
+
+pub use vex_sdk::{V5_TouchEvent, V5_TouchStatus};
+
+use crate::{display::DISPLAY, sdk::update_touch_status};
+
+#[unsafe(no_mangle)]
+pub extern "C" fn vexTouchUserCallbackSet(callback: unsafe extern "C" fn(V5_TouchEvent, i32, i32)) {
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn vexTouchDataGet(status: *mut V5_TouchStatus) {
+    update_touch_status();
+
+    let display = DISPLAY.lock();
+    unsafe {
+        *status = display.touch();
+    }
+}

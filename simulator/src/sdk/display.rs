@@ -101,7 +101,7 @@ pub extern "C" fn vexDisplayLineClear(x1: i32, y1: i32, x2: i32, y2: i32) {
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDisplayRectDraw(x1: i32, y1: i32, x2: i32, y2: i32) {
     let mut canvas = CANVAS.lock();
-    canvas.trace_rect(Rect::from_sdk(x1, y1, x2, y2));
+    canvas.draw_rect(Rect::from_sdk(x1, y1, x2, y2));
 }
 
 #[unsafe(no_mangle)]
@@ -126,7 +126,7 @@ pub extern "C" fn vexDisplayCircleDraw(xc: i32, yc: i32, radius: i32) {
         x: xc,
         y: yc + HEADER_HEIGHT,
     };
-    canvas.trace_circle(point, radius.max(0) as u32);
+    canvas.draw_circle(point, radius.max(0) as u32);
 }
 
 #[unsafe(no_mangle)]
@@ -156,7 +156,7 @@ pub extern "C" fn vexDisplayCircleFill(xc: i32, yc: i32, radius: i32) {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDisplayTextSize(n: u32, d: u32) {
-    CANVAS.lock().set_font_scale(n, d);
+    CANVAS.lock().state.font_scale = (n, d);
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDisplayFontNamedSet(pFontName: *const c_char) {}
@@ -272,6 +272,7 @@ pub unsafe extern "C" fn vexDisplayVPrintf(
             y: ypos + HEADER_HEIGHT,
         },
         string.as_ref(),
+        bOpaque != 0,
     );
 }
 

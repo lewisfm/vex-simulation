@@ -1,4 +1,4 @@
-use std::{mem, num::NonZeroU32, rc::Rc};
+use std::{mem, num::NonZeroU32, rc::Rc, sync::LazyLock, time::Instant};
 
 use anyhow::{Context, Result, anyhow};
 use fast_image_resize::{
@@ -9,17 +9,21 @@ use fast_image_resize::{
 use parking_lot::{Condvar, Mutex};
 use softbuffer::Surface;
 use tracing::{debug, trace};
+use vex_sdk::{V5_TouchEvent, V5_TouchStatus};
 use winit::{
     dpi::LogicalSize,
-    event::WindowEvent,
+    event::{ElementState, MouseButton, WindowEvent},
     event_loop::{ActiveEventLoop, OwnedDisplayHandle},
     window::{Theme, Window, WindowId},
 };
 
 use crate::{
     DisplayCtx,
-    canvas::{BUFSZ, CANVAS, Canvas, HEIGHT, Rect, WIDTH},
+    canvas::{BUFSZ, CANVAS, Canvas, HEIGHT, Point, Rect, WIDTH, img::Image},
 };
+
+static DEVICE_IMAGE: LazyLock<Image> =
+    LazyLock::new(|| Image::from_png(include_bytes!("../assets/brain.png")));
 
 pub static DISPLAY: Mutex<SimDisplay> = Mutex::new(SimDisplay::new());
 const SIZE: LogicalSize<f64> = LogicalSize::new(480.0, 272.0);
@@ -30,10 +34,14 @@ pub struct SimDisplayWindow {
     window: Rc<Window>,
     surface: Surface<OwnedDisplayHandle, Rc<Window>>,
 
+    scale_factor: f64,
+
     /// Used for drawing the program header.
     ///
     /// This is effectively drawn on a separate layer from the default user canvas.
-    header_canvas: Canvas,
+    system_canvas: Canvas,
+    program_start: Instant,
+    program_display_name: String,
 
     // A frame has been explicitly requested by the app; the next redraw should autorender the
     // canvas, update the program header, notify vexDisplayRender callers, etc. instead of just
@@ -42,7 +50,7 @@ pub struct SimDisplayWindow {
 }
 
 impl SimDisplayWindow {
-    pub fn open(event_loop: &ActiveEventLoop, context: &DisplayCtx) -> Result<Self> {
+    pub fn open(event_loop: &ActiveEventLoop, context: &DisplayCtx, name: &str) -> Result<Self> {
         debug!("Opening V5 display window");
 
         #[cfg(target_os = "macos")]
@@ -53,7 +61,7 @@ impl SimDisplayWindow {
             .with_min_inner_size(SIZE)
             .with_inner_size(SIZE)
             .with_theme(Some(Theme::Dark))
-            .with_title("VEX V5 Display");
+            .with_title(format!("VEX V5 Simulator (Program: {name})"));
 
         let window = Rc::new(event_loop.create_window(attrs)?);
 
@@ -67,11 +75,23 @@ impl SimDisplayWindow {
             .map_err(|e| anyhow!(e.to_string()))
             .context("Failed to create V5 display rendering surface")?;
 
+        debug!("Initializing system canvas");
+
+        let system_canvas = Canvas::new();
+        let program_display_name = if name.len() > 15 {
+            format!("{}...", &name[0..=12])
+        } else {
+            name.to_string()
+        };
+
         Ok(Self {
             surface,
             window,
-            header_canvas: Canvas::new(),
+            system_canvas,
+            scale_factor: 1.0,
             has_scheduled_frame: true,
+            program_display_name,
+            program_start: Instant::now(),
         })
     }
 
@@ -108,6 +128,8 @@ impl SimDisplayWindow {
                     _ = self.window.request_inner_size(fb_dims);
                 }
 
+                self.scale_factor = SIZE.width / fb_dims.width as f64;
+
                 // Scale the framebuffer to the window.
                 self.surface
                     .resize(
@@ -115,6 +137,21 @@ impl SimDisplayWindow {
                         NonZeroU32::new(fb_dims.height).unwrap(),
                     )
                     .unwrap();
+            }
+            WindowEvent::CursorMoved { position, .. } => {
+                let mut display = DISPLAY.lock();
+                display.mouse_coords = Point {
+                    x: (position.x * self.scale_factor) as i32,
+                    y: (position.y * self.scale_factor) as i32,
+                };
+            }
+            WindowEvent::MouseInput {
+                state,
+                button: MouseButton::Left,
+                ..
+            } => {
+                let mut display = DISPLAY.lock();
+                display.mouse_down = state == ElementState::Pressed;
             }
             _ => {}
         }
@@ -143,8 +180,8 @@ impl SimDisplayWindow {
             }
 
             if !disp.fullscreen {
-                self.header_canvas.draw_header();
-                disp.blit_rect(self.header_canvas.buffer(), Rect::HEADER_CLIP);
+                self.draw_header();
+                disp.blit_rect(self.system_canvas.buffer(), Rect::HEADER_CLIP);
             }
         }
 
@@ -192,6 +229,41 @@ impl SimDisplayWindow {
         self.window.pre_present_notify();
         framebuffer.present().unwrap();
     }
+
+    /// Draw the program header on the header canvas.
+    pub fn draw_header(&mut self) {
+        let canvas = &mut self.system_canvas;
+
+        canvas.state.fg_color = 0x00_99_CC;
+        canvas.fill_rect(Rect::HEADER_CLIP);
+
+        canvas.state.fg_color = 0x00_00_00;
+
+        canvas.state.set_named_font("proportional");
+        canvas.state.font_scale = (2, 5);
+        canvas.draw_string(Point::new(8, 0), &self.program_display_name, false);
+
+        let elapsed = self.program_start.elapsed().as_secs();
+        let minutes = elapsed / 60;
+        let seconds = elapsed % 60;
+        let elapsed_time = format!("{minutes}:{seconds:02}");
+
+        canvas.state.set_named_font("NotoSansMono_39pt");
+        canvas.state.font_scale = (3, 5);
+        canvas.draw_string(Point::new(246, 3), &elapsed_time, false);
+
+        let device = &*DEVICE_IMAGE;
+        let device_coords = Point::new(WIDTH as i32 - device.width() - 4, -1);
+        DEVICE_IMAGE.draw(canvas, device_coords);
+
+        let battery = Rect::sized(452, 23, 13, 9);
+        canvas.state.fg_color = 0x93_C8_3F;
+        canvas.fill_rect(battery);
+
+        canvas.state.fg_color = 0x00_00_00;
+        canvas.draw_rect(battery);
+        canvas.fill_rect(Rect::sized(battery.left() + 13, battery.top() + 3, 2, 3));
+    }
 }
 
 /// The shared state for a simulated display.
@@ -205,6 +277,11 @@ pub struct SimDisplay {
     /// Indicates whether redraws should automatically render the user canvas without calls to
     /// [`vexDisplayRender`](crate::sdk::vexDisplayRender).
     autorender: bool,
+
+    pub mouse_down: bool,
+    pub mouse_coords: Point,
+
+    pub touch: V5_TouchStatus,
 }
 
 impl SimDisplay {
@@ -213,12 +290,20 @@ impl SimDisplay {
             buffer: [0; _],
             fullscreen: false,
             autorender: true,
+            mouse_down: false,
+            touch: V5_TouchStatus {
+                lastEvent: V5_TouchEvent::kTouchEventRelease,
+                lastXpos: 0,
+                lastYpos: 0,
+                pressCount: 0,
+                releaseCount: 0,
+            },
         }
     }
 
     /// Copy a rectangle of pixels from the source onto the display.
     pub fn blit_rect(&mut self, source: &[u32; BUFSZ], mut mask: Rect) {
-        mask.clip_to(&Rect::FULL_CLIP);
+        mask.clip_to(Rect::FULL_CLIP);
 
         for pixel in mask.pixels() {
             let idx = (pixel.y * WIDTH as i32 + pixel.x) as usize;
@@ -241,6 +326,10 @@ impl SimDisplay {
 
     pub fn set_autorender(&mut self, autorender: bool) {
         self.autorender = autorender;
+    }
+
+    pub fn touch(&self) -> V5_TouchStatus {
+        self.touch
     }
 
     /// Runs a callback after the in-progress frame, then waits for the next frame to be committed.
