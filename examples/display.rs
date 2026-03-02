@@ -23,7 +23,7 @@ async fn entry(_p: Peripherals) {
 
     unsafe {
         vexDisplayForegroundColor(0xFF_FF_FF);
-        vexDisplayRectFill(0, -10, 50, 50);
+        vexDisplayRectFill(0, -30, 50, 50);
         vexDisplayForegroundColor(0xFF_00_FF);
         vexDisplayRectDraw(30, 30, 70, 70);
 

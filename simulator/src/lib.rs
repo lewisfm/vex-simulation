@@ -4,6 +4,7 @@
 mod canvas;
 mod display;
 pub mod sdk;
+mod config;
 
 #[cfg(target_os = "macos")]
 mod macos;

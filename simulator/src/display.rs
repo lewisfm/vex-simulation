@@ -248,7 +248,7 @@ impl SimDisplayWindow {
         let seconds = elapsed % 60;
         let elapsed_time = format!("{minutes}:{seconds:02}");
 
-        canvas.state.set_named_font("NotoSansMono_39pt");
+        canvas.state.set_named_font("NotoMono_39pt");
         canvas.state.font_scale = (3, 5);
         canvas.draw_string(Point::new(246, 3), &elapsed_time, false);
 
@@ -288,7 +288,7 @@ impl SimDisplay {
     pub const fn new() -> Self {
         Self {
             buffer: [0; _],
-            fullscreen: false,
+            fullscreen: true,
             autorender: true,
             mouse_coords: Point::new(0, 0),
             mouse_down: false,

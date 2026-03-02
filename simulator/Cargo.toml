@@ -19,6 +19,8 @@ font-kit = { version = "0.14.3", default-features = false, features = [
 ], git = "https://github.com/servo/font-kit" }
 pathfinder_geometry = "0.5.1"
 freetype-sys = { version = "0.23.0", features = ["bundled"] }
+thiserror = "2.0.18"
+png = "0.18.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 dispatch2 = "0.3.1"

@@ -17,24 +17,22 @@ use font_kit::{
 use pathfinder_geometry::{
     rect::{RectF, RectI},
     transform2d::Transform2F,
-    vector::{Vector2F, Vector2I},
+    vector::Vector2I,
 };
-
-use crate::canvas::Rect;
 
 static FONT_MAP: &[(&str, f32, &[u8])] = &[
     (
-        "NotoSansMono_49pt",
+        "NotoMono_49pt",
         49.0,
         include_bytes!("NotoMono-Regular.ttf"),
     ),
     (
-        "NotoSansMono_39pt",
+        "NotoMono_39pt",
         39.0,
         include_bytes!("NotoMono-Regular.ttf"),
     ),
     (
-        "NotoSansLatin_54pt",
+        "NotoSans_54pt",
         54.0,
         include_bytes!("NotoSans-Regular.ttf"),
     ),
@@ -46,7 +44,6 @@ static FONT_MAP: &[(&str, f32, &[u8])] = &[
 ];
 
 const PRE_RENDERED_CHARS: RangeInclusive<char> = (32u8 as char)..=(126u8 as char);
-const NUM_CHARS: usize = *PRE_RENDERED_CHARS.end() as usize - *PRE_RENDERED_CHARS.start() as usize;
 
 pub static FONTS: LazyLock<FontLoader> = LazyLock::new(FontLoader::new);
 
@@ -66,8 +63,8 @@ impl FontLoader {
         }
 
         // Font name aliases for public API
-        fonts.insert("monospace", fonts["NotoSansMono_49pt"].clone());
-        fonts.insert("proportional", fonts["NotoSansLatin_54pt"].clone());
+        fonts.insert("monospace", fonts["NotoMono_49pt"].clone());
+        fonts.insert("proportional", fonts["NotoSans_54pt"].clone());
 
         Self { fonts }
     }
