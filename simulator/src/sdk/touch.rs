@@ -6,6 +6,7 @@ use crate::{display::DISPLAY, sdk::update_touch_status};
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexTouchUserCallbackSet(callback: unsafe extern "C" fn(V5_TouchEvent, i32, i32)) {
+    super::sdk_unimplemented!("vexTouchUserCallbackSet");
 }
 
 #[unsafe(no_mangle)]

@@ -21,7 +21,12 @@ impl FromStr for DebugFlag {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
             "text-buffer" => Self::TextBuffer,
-            _ => return Err(EnumParseError { name: "debug flag", value: s.to_string() }),
+            _ => {
+                return Err(EnumParseError {
+                    name: "debug flag",
+                    value: s.to_string(),
+                });
+            }
         })
     }
 }
@@ -41,7 +46,12 @@ impl FromStr for DisplayTheme {
             "default" => Self::default(),
             "dark" => Self::Dark,
             "light" => Self::Light,
-            _ => return Err(EnumParseError { name: "theme", value: s.to_string() }),
+            _ => {
+                return Err(EnumParseError {
+                    name: "theme",
+                    value: s.to_string(),
+                });
+            }
         })
     }
 }

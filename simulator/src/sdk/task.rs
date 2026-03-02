@@ -14,23 +14,30 @@ pub extern "C" fn vexTaskAdd(
     interval: c_int,
     label: *const c_char,
 ) {
+    super::sdk_unimplemented!("vexTaskAdd");
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexTaskGetCallbackAndId(index: u32, callback_id: *mut c_int) -> *mut c_void {
+    super::sdk_unimplemented!("vexTaskGetCallbackAndId");
     core::ptr::null_mut()
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexTaskSleep(time: u32) {}
+pub extern "C" fn vexTaskSleep(time: u32) {
+    super::sdk_unimplemented!("vexTaskSleep");
+}
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexTaskHardwareConcurrency() -> i32 {
+    super::sdk_unimplemented!("vexTaskHardwareConcurrency");
     0
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexBackgroundProcessing() {}
+pub extern "C" fn vexBackgroundProcessing() {
+    super::sdk_unimplemented!("vexBackgroundProcessing");
+}
 
 struct Task {
     func: fn(),

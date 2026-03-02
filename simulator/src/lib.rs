@@ -2,9 +2,9 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 
 mod canvas;
+mod config;
 mod display;
 pub mod sdk;
-mod config;
 
 #[cfg(target_os = "macos")]
 mod macos;

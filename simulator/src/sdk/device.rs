@@ -6,41 +6,51 @@ pub use vex_sdk::{V5_DeviceT, V5_DeviceType};
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDevicesGetNumber() -> u32 {
+    super::sdk_unimplemented!("vexDevicesGetNumber");
     23
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDevicesGetNumberByType(device_type: V5_DeviceType) -> u32 {
+    super::sdk_unimplemented!("vexDevicesGetNumberByType");
     Default::default()
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDevicesGet() -> V5_DeviceT {
+    super::sdk_unimplemented!("vexDevicesGet");
     core::ptr::null_mut()
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceGetByIndex(index: u32) -> V5_DeviceT {
+    super::sdk_unimplemented!("vexDeviceGetByIndex");
     Default::default()
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceFlagsGetByIndex(index: u32) -> u32 {
+    super::sdk_unimplemented!("vexDeviceFlagsGetByIndex");
     Default::default()
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceGetStatus(devices: *mut V5_DeviceType) -> i32 {
+    super::sdk_unimplemented!("vexDeviceGetStatus");
     -1
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceGetTimestamp(device: V5_DeviceT) -> u32 {
+    super::sdk_unimplemented!("vexDeviceGetTimestamp");
     Default::default()
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceGenericValueGet(device: V5_DeviceT) -> c_double {
+    super::sdk_unimplemented!("vexDeviceGenericValueGet");
     Default::default()
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceTypeGetByIndex(index: u32) -> V5_DeviceType {
+    super::sdk_unimplemented!("vexDeviceTypeGetByIndex");
     Default::default()
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDeviceButtonStateGet() -> c_int {
+    super::sdk_unimplemented!("vexDeviceButtonStateGet");
     Default::default()
 }

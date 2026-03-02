@@ -1,5 +1,9 @@
 use std::{
-    f64::consts::{PI, TAU}, mem::MaybeUninit, process::exit, thread::{self, sleep}, time::Duration
+    f64::consts::{PI, TAU},
+    mem::MaybeUninit,
+    process::exit,
+    thread::{self, sleep},
+    time::Duration,
 };
 
 use embedded_graphics::{
@@ -28,13 +32,20 @@ async fn entry(_p: Peripherals) {
                 V5_TouchEvent::kTouchEventPressAuto => 0x00_FF_00,
                 _ => 0xFF_00_FF,
             });
-            vexDisplayCircleDraw(touch_status.lastXpos as i32, touch_status.lastYpos as i32, 10);
+            vexDisplayCircleDraw(
+                touch_status.lastXpos as i32,
+                touch_status.lastYpos as i32,
+                10,
+            );
+
+            vexBackgroundProcessing();
 
             vexDisplayRender(true, false);
             vexTasksRun();
 
             // Intentionally make it slow so you can see the events better.
             sleep(Duration::from_millis(100));
+
         }
     }
 }

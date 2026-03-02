@@ -288,7 +288,7 @@ impl SimDisplay {
     pub const fn new() -> Self {
         Self {
             buffer: [0; _],
-            fullscreen: true,
+            fullscreen: false,
             autorender: true,
             mouse_coords: Point::new(0, 0),
             mouse_down: false,

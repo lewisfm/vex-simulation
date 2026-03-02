@@ -32,16 +32,19 @@ pub extern "C" fn vexDisplayBackgroundColor(col: u32) {
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDisplayErase() {
+    super::sdk_unimplemented!("vexDisplayErase");
     todo!()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDisplayScroll(nStartLine: i32, nLines: i32) {
+    super::sdk_unimplemented!("vexDisplayScroll");
     todo!()
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDisplayScrollRect(x1: i32, y1: i32, x2: i32, y2: i32, nLines: i32) {
+    super::sdk_unimplemented!("vexDisplayScrollRect");
     todo!()
 }
 
@@ -322,6 +325,7 @@ pub extern "C" fn vexDisplayDoubleBufferDisable() {
 /// Unimplemented.
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDisplayClipRegionSetWithIndex(index: i32, x1: i32, y1: i32, x2: i32, y2: i32) {
+    super::sdk_unimplemented!("vexDisplayClipRegionSetWithIndex");
     unimplemented!("VEXos task api")
 }
 
@@ -337,6 +341,7 @@ pub unsafe extern "C" fn vexImageBmpRead(
     maxw: u32,
     maxh: u32,
 ) -> u32 {
+    super::sdk_unimplemented!("vexImageBmpRead");
     // Unimplemented to avoid bringing in a BMP decoder that will probably not be used.
     // PNG is implemented because we use PNGs anyways.
     0

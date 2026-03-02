@@ -31,7 +31,11 @@ pub mod task;
 pub mod touch;
 pub mod vision;
 
-use std::ffi::{VaList, c_char};
+use std::{
+    collections::HashSet,
+    ffi::{VaList, c_char},
+    sync::LazyLock,
+};
 
 pub use abs_enc::*;
 pub use adi::*;
@@ -53,6 +57,7 @@ pub use light_tower::*;
 pub use magnet::*;
 pub use motor::*;
 pub use optical::*;
+use parking_lot::Mutex;
 pub use pneumatic::*;
 pub use range::*;
 pub use serial::*;
@@ -69,3 +74,14 @@ unsafe extern "C" {
         vlist: VaList<'_>,
     );
 }
+
+static UNIMPLEMENTED_LOGGED: LazyLock<Mutex<HashSet<&'static str>>> = LazyLock::new(Mutex::default);
+
+macro_rules! sdk_unimplemented {
+    ($name:literal) => {
+        if $crate::sdk::UNIMPLEMENTED_LOGGED.lock().insert($name) {
+            ::tracing::warn!(name = %$name, "TODO");
+        }
+    };
+}
+use sdk_unimplemented;

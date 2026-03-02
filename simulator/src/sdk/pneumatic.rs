@@ -11,15 +11,19 @@ pub extern "C" fn vexDevicePneumaticActuationStatusGet(
     ac3: *mut u16,
     ac4: *mut u16,
 ) -> u32 {
+    super::sdk_unimplemented!("vexDevicePneumaticActuationStatusGet");
     Default::default()
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDevicePneumaticCompressorSet(device: V5_DeviceT, bState: bool) {}
+pub extern "C" fn vexDevicePneumaticCompressorSet(device: V5_DeviceT, bState: bool) {
+    super::sdk_unimplemented!("vexDevicePneumaticCompressorSet");
+}
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDevicePneumaticCtrlSet(
     device: V5_DeviceT,
     pCtrl: *mut V5_DevicePneumaticCtrl,
 ) {
+    super::sdk_unimplemented!("vexDevicePneumaticCtrlSet");
 }
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDevicePneumaticCylinderPwmSet(
@@ -28,16 +32,23 @@ pub extern "C" fn vexDevicePneumaticCylinderPwmSet(
     bState: bool,
     pwm: u8,
 ) {
+    super::sdk_unimplemented!("vexDevicePneumaticCylinderPwmSet");
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDevicePneumaticCylinderSet(device: V5_DeviceT, id: u32, bState: bool) {}
+pub extern "C" fn vexDevicePneumaticCylinderSet(device: V5_DeviceT, id: u32, bState: bool) {
+    super::sdk_unimplemented!("vexDevicePneumaticCylinderSet");
+}
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDevicePneumaticPwmGet(device: V5_DeviceT) -> u32 {
+    super::sdk_unimplemented!("vexDevicePneumaticPwmGet");
     Default::default()
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDevicePneumaticPwmSet(device: V5_DeviceT, pwm: u8) {}
+pub extern "C" fn vexDevicePneumaticPwmSet(device: V5_DeviceT, pwm: u8) {
+    super::sdk_unimplemented!("vexDevicePneumaticPwmSet");
+}
 #[unsafe(no_mangle)]
 pub extern "C" fn vexDevicePneumaticStatusGet(device: V5_DeviceT) -> u32 {
+    super::sdk_unimplemented!("vexDevicePneumaticStatusGet");
     Default::default()
 }
