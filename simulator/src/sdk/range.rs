@@ -5,7 +5,7 @@
 use vex_sdk::V5_DeviceT;
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDeviceRangeValueGet(device: V5_DeviceT) -> i32 {
+pub extern "system" fn vexDeviceRangeValueGet(device: V5_DeviceT) -> i32 {
     super::sdk_unimplemented!("vexDeviceRangeValueGet");
     Default::default()
 }

@@ -9,7 +9,7 @@ use vex_sdk::V5_TouchEvent;
 use crate::{canvas::HEADER_HEIGHT, display::DISPLAY};
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexTaskAdd(
+pub extern "system" fn vexTaskAdd(
     callback: unsafe extern "C" fn() -> c_int,
     interval: c_int,
     label: *const c_char,
@@ -18,24 +18,24 @@ pub extern "C" fn vexTaskAdd(
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexTaskGetCallbackAndId(index: u32, callback_id: *mut c_int) -> *mut c_void {
+pub extern "system" fn vexTaskGetCallbackAndId(index: u32, callback_id: *mut c_int) -> *mut c_void {
     super::sdk_unimplemented!("vexTaskGetCallbackAndId");
     core::ptr::null_mut()
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexTaskSleep(time: u32) {
+pub extern "system" fn vexTaskSleep(time: u32) {
     super::sdk_unimplemented!("vexTaskSleep");
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexTaskHardwareConcurrency() -> i32 {
+pub extern "system" fn vexTaskHardwareConcurrency() -> i32 {
     super::sdk_unimplemented!("vexTaskHardwareConcurrency");
     0
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexBackgroundProcessing() {
+pub extern "system" fn vexBackgroundProcessing() {
     super::sdk_unimplemented!("vexBackgroundProcessing");
 }
 
@@ -95,7 +95,7 @@ pub fn update_touch_status() {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexTasksRun() {
+pub extern "system" fn vexTasksRun() {
     let mut tasks = TASKS.lock();
     let now = Instant::now();
 

@@ -2,13 +2,24 @@
 
 #![allow(unused)]
 
-use std::{sync::Arc, thread};
+use std::{
+    ptr,
+    sync::{
+        Arc,
+        atomic::{AtomicU32, Ordering},
+    },
+    thread,
+    time::{Duration, Instant},
+};
 
-use derive_more::{From, TryInto};
-use parking_lot::Mutex;
-use roboscope_ipc::{DeviceReadings, DeviceSnapshot, SMART_DEVICES_COUNT, Sample, SimServices, Subscriber};
+use derive_more::{AsRef, From, TryInto};
+use parking_lot::{Mutex, MutexGuard};
+use roboscope_ipc::{
+    DeviceReadings, DeviceSnapshot, SMART_DEVICES_COUNT, Sample, SimServices, Subscriber,
+};
+use vex_sdk::{V5_DeviceT, V5_DeviceType};
 
-static DEVICES: Devices = Devices::new();
+use crate::sdk::vexSystemTimeGet;
 
 pub fn start_device_handler(ipc: Arc<SimServices>) {
     thread::Builder::new()
@@ -39,36 +50,122 @@ impl DeviceHandler {
     }
 }
 
-struct Devices {
-    queued_sample: Mutex<Option<Sample<DeviceReadings>>>,
-    readings: Mutex<DeviceReadings>,
+struct QueuedSample {
+    inner: Sample<DeviceReadings>,
+    timestamp: u32,
+}
+
+impl QueuedSample {
+    pub fn snapshots(&self) -> &[DeviceSnapshot] {
+        &self.inner.0
+    }
+}
+
+pub static DEVICES: Devices = Devices::new();
+const NUM_DEVICES_HANDLES: usize = 23;
+
+pub struct Devices {
+    queued_sample: Mutex<Option<QueuedSample>>,
+    timestamp: AtomicU32,
+    pub smart_devices: [V5Device; NUM_DEVICES_HANDLES],
 }
 
 impl Devices {
     pub const fn new() -> Self {
         Self {
             queued_sample: Mutex::new(None),
-            readings: Mutex::new(DeviceReadings([DeviceSnapshot::Empty; _])),
+            timestamp: AtomicU32::new(0),
+            smart_devices: [const { V5Device::new() }; _],
         }
     }
 
     pub fn queue_sample(&self, sample: Sample<DeviceReadings>) {
-        *self.queued_sample.lock() = Some(sample);
+        *self.queued_sample.lock() = Some(QueuedSample {
+            inner: sample,
+            timestamp: vexSystemTimeGet(),
+        });
     }
 
     /// Copy the latest device readings (if any are available) from shared memory.
     pub fn update_readings(&self) {
         if let Some(sample) = self.queued_sample.lock().take() {
-            *self.readings.lock() = *sample;
+            for (i, &snapshot) in sample.snapshots().iter().enumerate() {
+                *self.smart_devices[i].0.lock() = V5DeviceData {
+                    snapshot,
+                    timestamp: sample.timestamp,
+                };
+            }
         }
     }
 
-    pub fn readings_for<T>(&self, port: usize, cb: impl FnOnce(Option<&mut T>))
+    pub fn handle_for(&self, port: u32) -> Option<V5_DeviceT> {
+        let device = self.smart_devices.get(port as usize)?;
+        Some(ptr::from_ref(device).cast_mut().cast())
+    }
+
+    pub fn get_by_handle(&self, handle: V5_DeviceT) -> Option<&V5Device> {
+        let offset = handle
+            .addr()
+            .checked_sub(self.smart_devices.as_ptr().addr())?;
+
+        if offset % size_of::<V5Device>() != 0 {
+            return None;
+        }
+
+        self.smart_devices.get(offset / size_of::<V5Device>())
+    }
+
+    pub unsafe fn get_by_handle_unchecked(&self, handle: V5_DeviceT) -> &V5Device {
+        // Better than dereferencing the pointer because you get precondition checks in debug mode.
+        unsafe { self.get_by_handle(handle).unwrap_unchecked() }
+    }
+}
+
+pub struct V5DeviceData {
+    snapshot: DeviceSnapshot,
+    timestamp: u32,
+}
+
+impl V5DeviceData {
+    pub const fn new() -> Self {
+        Self {
+            snapshot: DeviceSnapshot::Empty,
+            timestamp: 0,
+        }
+    }
+
+    pub fn readings_mut<T>(&mut self) -> Option<&mut T>
     where
         for<'a> &'a mut T: TryFrom<&'a mut DeviceSnapshot>,
     {
-        let mut readings = self.readings.lock();
-        let port = &mut readings.0[port];
-        cb(port.try_into().ok());
+        (&mut self.snapshot).try_into().ok()
+    }
+
+    pub fn readings<T>(&self) -> Option<&T>
+    where
+        for<'a> &'a T: TryFrom<&'a DeviceSnapshot>,
+    {
+        (&self.snapshot).try_into().ok()
+    }
+
+    pub fn timestamp(&self) -> u32 {
+        self.timestamp
+    }
+}
+
+#[derive(AsRef)]
+pub struct V5Device(pub Mutex<V5DeviceData>);
+
+impl V5Device {
+    pub const fn new() -> Self {
+        Self(Mutex::new(V5DeviceData::new()))
+    }
+
+    pub fn kind(&self) -> V5_DeviceType {
+        match &self.as_ref().lock().snapshot {
+            DeviceSnapshot::Empty => V5_DeviceType::kDeviceTypeNoSensor,
+            DeviceSnapshot::Generic(_) => V5_DeviceType::kDeviceTypeGenericSensor,
+            DeviceSnapshot::Distance(_) => V5_DeviceType::kDeviceTypeDistanceSensor,
+        }
     }
 }

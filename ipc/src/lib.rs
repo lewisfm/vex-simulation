@@ -43,7 +43,14 @@ pub struct DeviceReadings(pub [DeviceSnapshot; SMART_DEVICES_COUNT]);
 pub enum DeviceSnapshot {
     #[default]
     Empty,
+    Generic(GenericSnapshot),
     Distance(DistanceSnapshot),
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, ZeroCopySend, Default)]
+#[repr(C)]
+pub struct GenericSnapshot {
+    pub value: i32,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, ZeroCopySend, Default)]
@@ -53,7 +60,7 @@ pub struct DistanceSnapshot {
     pub confidence: u32,
     pub status: u32,
     pub object_size: i32,
-    pub object_velocity: i32,
+    pub object_velocity: f64,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, ZeroCopySend, Default)]

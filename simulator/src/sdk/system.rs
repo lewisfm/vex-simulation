@@ -9,33 +9,34 @@ pub use vex_sdk::{
 };
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexPrivateApiDisable(sig: u32) {
+pub extern "system" fn vexPrivateApiDisable(sig: u32) {
     super::sdk_unimplemented!("vexPrivateApiDisable");
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexStdlibMismatchError(installed_version: u32, required_version: u32) {
+pub extern "system" fn vexStdlibMismatchError(installed_version: u32, required_version: u32) {
     super::sdk_unimplemented!("vexStdlibMismatchError");
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexScratchMemoryLock() -> bool {
+pub extern "system" fn vexScratchMemoryLock() -> bool {
     super::sdk_unimplemented!("vexScratchMemoryLock");
     Default::default()
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexScratchMemoryUnock() {
-    super::sdk_unimplemented!("vexScratchMemoryUnock");
+pub extern "system" fn vexScratchMemoryUnlock() {
+    super::sdk_unimplemented!("vexScratchMemoryUnlock");
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemTimeGet() -> u32 {
+pub extern "system" fn vexSystemTimeGet() -> u32 {
     super::sdk_unimplemented!("vexSystemTimeGet");
     Default::default()
 }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vexGettime(pTime: *mut time) {
+pub unsafe extern "system" fn vexGettime(pTime: *mut time) {
     super::sdk_unimplemented!("vexGettime");
 }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vexGetdate(pDate: *mut date) {
+pub unsafe extern "system" fn vexGetdate(pDate: *mut date) {
+    super::sdk_unimplemented!("vexGetdate");
     unsafe {
         *pDate = date {
             da_year: 2016,
@@ -45,58 +46,59 @@ pub unsafe extern "C" fn vexGetdate(pDate: *mut date) {
     }
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemMemoryDump() {
+pub extern "system" fn vexSystemMemoryDump() {
     super::sdk_unimplemented!("vexSystemMemoryDump");
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemDigitalIO(pin: u32, value: u32) {
+pub extern "system" fn vexSystemDigitalIO(pin: u32, value: u32) {
     super::sdk_unimplemented!("vexSystemDigitalIO");
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemStartupOptions() -> u32 {
+pub extern "system" fn vexSystemStartupOptions() -> u32 {
     super::sdk_unimplemented!("vexSystemStartupOptions");
     Default::default()
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemExitRequest() {
+pub extern "system" fn vexSystemExitRequest() {
     super::sdk_unimplemented!("vexSystemExitRequest");
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemHighResTimeGet() -> u64 {
+pub extern "system" fn vexSystemHighResTimeGet() -> u64 {
     super::sdk_unimplemented!("vexSystemHighResTimeGet");
     Default::default()
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemPowerupTimeGet() -> u64 {
+pub extern "system" fn vexSystemPowerupTimeGet() -> u64 {
     super::sdk_unimplemented!("vexSystemPowerupTimeGet");
     Default::default()
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemLinkAddrGet() -> u32 {
+pub extern "system" fn vexSystemLinkAddrGet() -> u32 {
     super::sdk_unimplemented!("vexSystemLinkAddrGet");
     0
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemTimerGet(timer: u32) -> u32 {
+pub extern "system" fn vexSystemTimerGet(timer: u32) -> u32 {
     super::sdk_unimplemented!("vexSystemTimerGet");
     0
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemUsbStatus() -> u32 {
+pub extern "system" fn vexSystemUsbStatus() -> u32 {
+    super::sdk_unimplemented!("vexSystemUsbStatus");
     0x3
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemTimerStop() {
+pub extern "system" fn vexSystemTimerStop() {
     super::sdk_unimplemented!("vexSystemTimerStop");
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemTimerClearInterrupt() {
+pub extern "system" fn vexSystemTimerClearInterrupt() {
     super::sdk_unimplemented!("vexSystemTimerClearInterrupt");
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemTimerReinitForRtos(
+pub extern "system" fn vexSystemTimerReinitForRtos(
     priority: u32,
     handler: extern "C" fn(data: *mut c_void),
 ) -> i32 {
@@ -105,52 +107,53 @@ pub extern "C" fn vexSystemTimerReinitForRtos(
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemApplicationIRQHandler(ulICCIAR: u32) {
+pub extern "system" fn vexSystemApplicationIRQHandler(ulICCIAR: u32) {
     super::sdk_unimplemented!("vexSystemApplicationIRQHandler");
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemWatchdogReinitRtos() -> i32 {
+pub extern "system" fn vexSystemWatchdogReinitRtos() -> i32 {
     super::sdk_unimplemented!("vexSystemWatchdogReinitRtos");
     Default::default()
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemWatchdogGet() -> u32 {
+pub extern "system" fn vexSystemWatchdogGet() -> u32 {
     super::sdk_unimplemented!("vexSystemWatchdogGet");
     Default::default()
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemUndefinedException() {
-    loop {}
+pub extern "system" fn vexSystemUndefinedException() {
+    unimplemented!()
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemFIQInterrupt() {
-    loop {}
+pub extern "system" fn vexSystemFIQInterrupt() {
+    unimplemented!()
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemIRQInterrupt() {
-    loop {}
+pub extern "system" fn vexSystemIRQInterrupt() {
+    unimplemented!()
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemSWInterrupt() {
-    loop {}
+pub extern "system" fn vexSystemSWInterrupt() {
+    unimplemented!()
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemDataAbortInterrupt() {
-    loop {}
+pub extern "system" fn vexSystemDataAbortInterrupt() {
+    unimplemented!()
 }
 #[unsafe(no_mangle)]
-pub extern "C" fn vexSystemPrefetchAbortInterrupt() {
-    loop {}
+pub extern "system" fn vexSystemPrefetchAbortInterrupt() {
+    unimplemented!()
 }
+
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vex_vprintf(format: *const c_char, args: VaList) -> i32 {
+pub unsafe extern "system" fn vex_vprintf(format: *const c_char, args: VaList) -> i32 {
     super::sdk_unimplemented!("vex_vprintf");
     -1
 }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vex_vsprintf(
+pub unsafe extern "system" fn vex_vsprintf(
     out: *mut c_char,
     format: *const c_char,
     args: VaList,
@@ -159,7 +162,7 @@ pub unsafe extern "C" fn vex_vsprintf(
     -1
 }
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vex_vsnprintf(
+pub unsafe extern "system" fn vex_vsnprintf(
     out: *mut c_char,
     max_len: u32,
     format: *const c_char,
@@ -194,10 +197,12 @@ pub unsafe extern "C" fn vex_snprintf(
 
 #[unsafe(no_mangle)]
 pub unsafe extern "system" fn vexSystemVersion() -> u32 {
+    super::sdk_unimplemented!("vexSystemVersion");
     Default::default()
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "system" fn vexStdlibVersion() -> u32 {
+    super::sdk_unimplemented!("vexStdlibVersion");
     Default::default()
 }

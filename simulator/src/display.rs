@@ -165,6 +165,7 @@ impl SimDisplay {
         let device_coords = Point::new(WIDTH as i32 - device.width() - 4, -1);
         DEVICE_IMAGE.draw(&mut canvas, device_coords);
 
+        // TODO: dynamically set using device snapshots, yellow when <= 30%
         let battery = Rect::sized(452, 23, 13, 9);
         canvas.state.fg_color = 0x93_C8_3F;
         canvas.fill_rect(battery);

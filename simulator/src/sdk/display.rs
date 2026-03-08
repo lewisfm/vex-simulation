@@ -19,30 +19,30 @@ use crate::{
 
 /// Set the foreground color.
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayForegroundColor(col: u32) {
+pub extern "system" fn vexDisplayForegroundColor(col: u32) {
     CANVAS.lock().state.fg_color = col;
 }
 
 /// Set the background color.
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayBackgroundColor(col: u32) {
+pub extern "system" fn vexDisplayBackgroundColor(col: u32) {
     CANVAS.lock().state.bg_color = col;
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayErase() {
+pub extern "system" fn vexDisplayErase() {
     super::sdk_unimplemented!("vexDisplayErase");
     todo!()
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayScroll(nStartLine: i32, nLines: i32) {
+pub extern "system" fn vexDisplayScroll(nStartLine: i32, nLines: i32) {
     super::sdk_unimplemented!("vexDisplayScroll");
     todo!()
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayScrollRect(x1: i32, y1: i32, x2: i32, y2: i32, nLines: i32) {
+pub extern "system" fn vexDisplayScrollRect(x1: i32, y1: i32, x2: i32, y2: i32, nLines: i32) {
     super::sdk_unimplemented!("vexDisplayScrollRect");
     todo!()
 }
@@ -59,7 +59,7 @@ pub extern "C" fn vexDisplayScrollRect(x1: i32, y1: i32, x2: i32, y2: i32, nLine
 ///
 /// `srcStride` must be nonzero, unless `y2` equals `y1`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vexDisplayCopyRect(
+pub unsafe extern "system" fn vexDisplayCopyRect(
     x1: i32,
     y1: i32,
     x2: i32,
@@ -78,7 +78,7 @@ pub unsafe extern "C" fn vexDisplayCopyRect(
 
 /// Write a pixel using the foreground color.
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayPixelSet(x: u32, y: u32) {
+pub extern "system" fn vexDisplayPixelSet(x: u32, y: u32) {
     let mut canvas = CANVAS.lock();
     canvas.set_pixel(Point {
         x: x as i32,
@@ -88,7 +88,7 @@ pub extern "C" fn vexDisplayPixelSet(x: u32, y: u32) {
 
 /// Write a pixel using the background color.
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayPixelClear(x: u32, y: u32) {
+pub extern "system" fn vexDisplayPixelClear(x: u32, y: u32) {
     let mut canvas = CANVAS.lock();
     canvas.state.swap_colors();
     canvas.set_pixel(Point {
@@ -100,7 +100,7 @@ pub extern "C" fn vexDisplayPixelClear(x: u32, y: u32) {
 
 /// Draw a 1px-wide line using the foreground color.
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayLineDraw(x1: i32, y1: i32, x2: i32, y2: i32) {
+pub extern "system" fn vexDisplayLineDraw(x1: i32, y1: i32, x2: i32, y2: i32) {
     let mut canvas = CANVAS.lock();
     canvas.draw_line(
         Point {
@@ -116,7 +116,7 @@ pub extern "C" fn vexDisplayLineDraw(x1: i32, y1: i32, x2: i32, y2: i32) {
 
 /// Draw a 1px-wide line using the background color.
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayLineClear(x1: i32, y1: i32, x2: i32, y2: i32) {
+pub extern "system" fn vexDisplayLineClear(x1: i32, y1: i32, x2: i32, y2: i32) {
     let mut canvas = CANVAS.lock();
     canvas.state.swap_colors();
     canvas.draw_line(
@@ -134,14 +134,14 @@ pub extern "C" fn vexDisplayLineClear(x1: i32, y1: i32, x2: i32, y2: i32) {
 
 /// Trace the 1px-wide outline of the given rectangle using the foreground color.
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayRectDraw(x1: i32, y1: i32, x2: i32, y2: i32) {
+pub extern "system" fn vexDisplayRectDraw(x1: i32, y1: i32, x2: i32, y2: i32) {
     let mut canvas = CANVAS.lock();
     canvas.draw_rect(Rect::from_sdk(x1, y1, x2, y2));
 }
 
 /// Fill the given rectangle of pixels with the background color.
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayRectClear(x1: i32, y1: i32, x2: i32, y2: i32) {
+pub extern "system" fn vexDisplayRectClear(x1: i32, y1: i32, x2: i32, y2: i32) {
     let mut canvas = CANVAS.lock();
     canvas.state.swap_colors();
     canvas.fill_rect(Rect::from_sdk(x1, y1, x2, y2));
@@ -150,14 +150,14 @@ pub extern "C" fn vexDisplayRectClear(x1: i32, y1: i32, x2: i32, y2: i32) {
 
 /// Fill the given rectangle of pixels with the foreground color.
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayRectFill(x1: i32, y1: i32, x2: i32, y2: i32) {
+pub extern "system" fn vexDisplayRectFill(x1: i32, y1: i32, x2: i32, y2: i32) {
     let mut canvas = CANVAS.lock();
     canvas.fill_rect(Rect::from_sdk(x1, y1, x2, y2));
 }
 
 /// Trace the 1px-wide outline of the given circle using the foreground color.
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayCircleDraw(xc: i32, yc: i32, radius: i32) {
+pub extern "system" fn vexDisplayCircleDraw(xc: i32, yc: i32, radius: i32) {
     let mut canvas = CANVAS.lock();
 
     let point = Point {
@@ -169,7 +169,7 @@ pub extern "C" fn vexDisplayCircleDraw(xc: i32, yc: i32, radius: i32) {
 
 /// Fill the given circle of pixels with the background color.
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayCircleClear(xc: i32, yc: i32, radius: i32) {
+pub extern "system" fn vexDisplayCircleClear(xc: i32, yc: i32, radius: i32) {
     let mut canvas = CANVAS.lock();
     canvas.state.swap_colors();
 
@@ -184,7 +184,7 @@ pub extern "C" fn vexDisplayCircleClear(xc: i32, yc: i32, radius: i32) {
 
 /// Fill the given circle of pixels with the foreground color.
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayCircleFill(xc: i32, yc: i32, radius: i32) {
+pub extern "system" fn vexDisplayCircleFill(xc: i32, yc: i32, radius: i32) {
     let mut canvas = CANVAS.lock();
 
     let point = Point {
@@ -196,7 +196,7 @@ pub extern "C" fn vexDisplayCircleFill(xc: i32, yc: i32, radius: i32) {
 
 /// Set the text scaling factor to the given fraction `n / d`.
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayTextSize(n: u32, d: u32) {
+pub extern "system" fn vexDisplayTextSize(n: u32, d: u32) {
     CANVAS.lock().state.font_scale = (n, d);
 }
 
@@ -218,19 +218,19 @@ pub extern "C" fn vexDisplayTextSize(n: u32, d: u32) {
 ///
 /// The given font name must be a C string that's valid for reads.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vexDisplayFontNamedSet(pFontName: *const c_char) {
+pub unsafe extern "system" fn vexDisplayFontNamedSet(pFontName: *const c_char) {
     let c_str = unsafe { CStr::from_ptr(pFontName) };
     let str = c_str.to_str().unwrap_or_default();
     CANVAS.lock().state.set_named_font(str);
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayForegroundColorGet() -> u32 {
+pub extern "system" fn vexDisplayForegroundColorGet() -> u32 {
     CANVAS.lock().state.fg_color
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayBackgroundColorGet() -> u32 {
+pub extern "system" fn vexDisplayBackgroundColorGet() -> u32 {
     CANVAS.lock().state.bg_color
 }
 
@@ -240,7 +240,7 @@ pub extern "C" fn vexDisplayBackgroundColorGet() -> u32 {
 ///
 /// `pString` must be a C string that is valid for reads.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vexDisplayStringWidthGet(pString: *const c_char) -> i32 {
+pub unsafe extern "system" fn vexDisplayStringWidthGet(pString: *const c_char) -> i32 {
     let c_str = unsafe { CStr::from_ptr(pString) };
     let str = c_str.to_string_lossy();
     CANVAS.lock().measure_string_width(&str)
@@ -252,7 +252,7 @@ pub unsafe extern "C" fn vexDisplayStringWidthGet(pString: *const c_char) -> i32
 ///
 /// `pString` must be a C string that is valid for reads.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vexDisplayStringHeightGet(pString: *const c_char) -> i32 {
+pub unsafe extern "system" fn vexDisplayStringHeightGet(pString: *const c_char) -> i32 {
     let c_str = unsafe { CStr::from_ptr(pString) };
     let str = c_str.to_string_lossy();
     CANVAS.lock().measure_string_height(&str)
@@ -260,13 +260,13 @@ pub unsafe extern "C" fn vexDisplayStringHeightGet(pString: *const c_char) -> i3
 
 /// This function saves the given value and returns it from [`vexDisplayPenSizeGet`].
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayPenSizeSet(width: u32) {
+pub extern "system" fn vexDisplayPenSizeSet(width: u32) {
     CANVAS.lock().state.pen_size = width;
 }
 
 /// Returns the last value passed to [`vexDisplayPenSizeSet`].
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayPenSizeGet() -> u32 {
+pub extern "system" fn vexDisplayPenSizeGet() -> u32 {
     CANVAS.lock().state.pen_size
 }
 
@@ -276,7 +276,7 @@ pub extern "C" fn vexDisplayPenSizeGet() -> u32 {
 /// the simulator config, changes made underneath the header at the top of the screen will
 /// not be visible.
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayClipRegionSet(x1: i32, y1: i32, x2: i32, y2: i32) {
+pub extern "system" fn vexDisplayClipRegionSet(x1: i32, y1: i32, x2: i32, y2: i32) {
     let region = Rect::from_sdk(x1, y1, x2, y2);
     CANVAS.lock().state.set_clip_region(region);
 }
@@ -293,7 +293,7 @@ pub extern "C" fn vexDisplayClipRegionSet(x1: i32, y1: i32, x2: i32, y2: i32) {
 ///
 /// The `bRunScheduler` parameter is currently a no-op.
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayRender(bVsyncWait: bool, bRunScheduler: bool) {
+pub extern "system" fn vexDisplayRender(bVsyncWait: bool, bRunScheduler: bool) {
     trace!("Dispatching render");
 
     let do_render = |display: &mut SimDisplay| {
@@ -312,14 +312,14 @@ pub extern "C" fn vexDisplayRender(bVsyncWait: bool, bRunScheduler: bool) {
 
 /// Re-enables automatic 60 FPS rendering after a call to [`vexDisplayRender`].
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayDoubleBufferDisable() {
+pub extern "system" fn vexDisplayDoubleBufferDisable() {
     let mut display = DISPLAY.lock();
     display.autorender = true;
 }
 
 /// Unimplemented.
 #[unsafe(no_mangle)]
-pub extern "C" fn vexDisplayClipRegionSetWithIndex(index: i32, x1: i32, y1: i32, x2: i32, y2: i32) {
+pub extern "system" fn vexDisplayClipRegionSetWithIndex(index: i32, x1: i32, y1: i32, x2: i32, y2: i32) {
     super::sdk_unimplemented!("vexDisplayClipRegionSetWithIndex");
     unimplemented!("VEXos task api")
 }
@@ -330,7 +330,7 @@ pub extern "C" fn vexDisplayClipRegionSetWithIndex(index: i32, x1: i32, y1: i32,
 ///
 /// N/A
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vexImageBmpRead(
+pub unsafe extern "system" fn vexImageBmpRead(
     ibuf: *const u8,
     oBuf: *mut v5_image,
     maxw: u32,
@@ -359,7 +359,7 @@ pub unsafe extern "C" fn vexImageBmpRead(
 /// - If `oBuf` is not null, `(*oBuf).data` must either point to a image buffer that is valid for
 ///   writes and at least `maxw * maxh * 4` bytes long or be null.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vexImagePngRead(
+pub unsafe extern "system" fn vexImagePngRead(
     ibuf: *const u8,
     oBuf: *mut v5_image,
     maxw: u32,
@@ -431,7 +431,7 @@ fn line_to_y(line: i32) -> i32 {
 ///
 /// See [`vexDisplayPrintf`].
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vexDisplayVPrintf(
+pub unsafe extern "system" fn vexDisplayVPrintf(
     xpos: i32,
     ypos: i32,
     bOpaque: i32,
@@ -458,7 +458,7 @@ pub unsafe extern "C" fn vexDisplayVPrintf(
 ///
 /// See [`vexDisplayPrintf`].
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vexDisplayVString(
+pub unsafe extern "system" fn vexDisplayVString(
     nLineNumber: i32,
     format: *const c_char,
     args: VaList<'_>,
@@ -474,7 +474,7 @@ pub unsafe extern "C" fn vexDisplayVString(
 ///
 /// See [`vexDisplayPrintf`].
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vexDisplayVStringAt(
+pub unsafe extern "system" fn vexDisplayVStringAt(
     xpos: i32,
     ypos: i32,
     format: *const c_char,
@@ -503,7 +503,7 @@ pub unsafe extern "C" fn vexDisplayVStringAt(
 ///
 /// See [`vexDisplayPrintf`].
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vexDisplayVBigString(
+pub unsafe extern "system" fn vexDisplayVBigString(
     nLineNumber: i32,
     format: *const c_char,
     args: VaList<'_>,
@@ -519,7 +519,7 @@ pub unsafe extern "C" fn vexDisplayVBigString(
 ///
 /// See [`vexDisplayPrintf`].
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vexDisplayVBigStringAt(
+pub unsafe extern "system" fn vexDisplayVBigStringAt(
     xpos: i32,
     ypos: i32,
     format: *const c_char,
@@ -548,7 +548,7 @@ pub unsafe extern "C" fn vexDisplayVBigStringAt(
 ///
 /// See [`vexDisplayPrintf`].
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vexDisplayVSmallStringAt(
+pub unsafe extern "system" fn vexDisplayVSmallStringAt(
     xpos: i32,
     ypos: i32,
     format: *const c_char,
@@ -577,7 +577,7 @@ pub unsafe extern "C" fn vexDisplayVSmallStringAt(
 ///
 /// See [`vexDisplayPrintf`].
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vexDisplayVCenteredString(
+pub unsafe extern "system" fn vexDisplayVCenteredString(
     nLineNumber: i32,
     format: *const c_char,
     args: VaList<'_>,
@@ -607,7 +607,7 @@ pub unsafe extern "C" fn vexDisplayVCenteredString(
 ///
 /// See [`vexDisplayPrintf`].
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn vexDisplayVBigCenteredString(
+pub unsafe extern "system" fn vexDisplayVBigCenteredString(
     nLineNumber: i32,
     format: *const c_char,
     args: VaList<'_>,
