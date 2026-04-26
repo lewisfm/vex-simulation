@@ -1,4 +1,7 @@
-use roboscope_ipc::{Config, DeviceReadings, DistanceSnapshot, SimServices};
+use roboscope_ipc::{
+    Config, SimServices,
+    snapshot::{DeviceReadings, DistanceSnapshot},
+};
 
 fn main() {
     let sim = SimServices::join(Some("Oscillator example"), &Config::default()).unwrap();

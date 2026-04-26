@@ -15,7 +15,8 @@ use std::{
 use derive_more::{AsRef, From, TryInto};
 use parking_lot::{Mutex, MutexGuard};
 use roboscope_ipc::{
-    DeviceReadings, DeviceSnapshot, PHYSICS_UPDATE_PERIOD, SMART_DEVICES_COUNT, Sample, SimServices, Subscriber
+    PHYSICS_UPDATE_PERIOD, SMART_DEVICES_COUNT, Sample, SimServices, Subscriber,
+    snapshot::{DeviceReadings, DeviceSnapshot},
 };
 use tracing::{debug, trace};
 use vex_sdk::{V5_DeviceT, V5_DeviceType};

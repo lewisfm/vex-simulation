@@ -12,9 +12,9 @@ use iceoryx2::{port::publisher::Publisher, prelude::*};
 
 use crate::error::{RoboscopeIpcError, SimResult};
 
+// Aliases for the kind of IPC types we use.
 #[cfg(feature = "thread-safe")]
 use ipc_threadsafe as ipc;
-
 pub type PubSubFactory<T> =
     iceoryx2::service::port_factory::publish_subscribe::PortFactory<ipc::Service, T, ()>;
 pub type Subscriber<T> =
@@ -23,6 +23,8 @@ pub type Sample<T> =
     iceoryx2::sample::Sample<ipc::Service, T, ()>;
 pub use iceoryx2::config::Config;
 
+pub mod snapshot;
+pub mod cmd;
 pub mod error;
 
 pub const PHYSICS_UPDATE_PERIOD: Duration = Duration::from_millis(10);
@@ -34,58 +36,6 @@ pub const DISPLAY_WIDTH: u32 = 480;
 pub const DISPLAY_HEIGHT: u32 = 272;
 pub const DISPLAY_BUF_SIZE: usize = DISPLAY_WIDTH as usize * DISPLAY_HEIGHT as usize;
 
-#[derive(Debug, Copy, Clone, PartialEq, ZeroCopySend, Default)]
-#[repr(C)]
-pub struct DeviceReadings(pub [DeviceSnapshot; SMART_DEVICES_COUNT]);
-
-#[derive(Debug, Copy, Clone, PartialEq, ZeroCopySend, Default, From, TryInto)]
-#[try_into(owned, ref, ref_mut)]
-#[repr(C)]
-pub enum DeviceSnapshot {
-    #[default]
-    Empty,
-    Generic(GenericSnapshot),
-    Distance(DistanceSnapshot),
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, ZeroCopySend, Default)]
-#[repr(C)]
-pub struct GenericSnapshot {
-    pub value: i32,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, ZeroCopySend)]
-#[repr(C)]
-pub struct DistanceSnapshot {
-    pub distance: u32,
-    pub confidence: u32,
-    pub status: u32,
-    pub object_size: i32,
-    pub object_velocity: f64,
-}
-
-impl Default for DistanceSnapshot {
-    fn default() -> Self {
-        Self {
-            distance: 9999,
-            confidence: 0,
-            status: 0,
-            object_size: -1,
-            object_velocity: 0.0,
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, ZeroCopySend, Default)]
-#[repr(C)]
-pub struct RobotOutputs(pub [DeviceCommand; SMART_DEVICES_COUNT]);
-
-#[derive(Debug, Copy, Clone, PartialEq, ZeroCopySend, Default, From, TryInto)]
-#[repr(C)]
-pub enum DeviceCommand {
-    #[default]
-    Empty,
-}
 
 #[derive(derive_more::Debug, ZeroCopySend)]
 #[debug("DisplayFrame")]
@@ -131,17 +81,17 @@ impl SimServices {
         self.pub_sub("vexide/roboscope/display_frames")
     }
 
-    pub fn device_cmds(&self) -> SimResult<PubSubFactory<RobotOutputs>> {
+    pub fn device_cmds(&self) -> SimResult<PubSubFactory<cmd::RobotOutputs>> {
         self.pub_sub("vexide/roboscope/device_cmds")
     }
 
-    pub fn device_readings(&self) -> SimResult<PubSubFactory<DeviceReadings>> {
+    pub fn device_readings(&self) -> SimResult<PubSubFactory<snapshot::DeviceReadings>> {
         self.pub_sub("vexide/roboscope/device_readings")
     }
 
     pub fn publish_device_readings(
         &self,
-        mut physics_sim: impl FnMut(Option<&RobotOutputs>) -> DeviceReadings,
+        mut physics_sim: impl FnMut(Option<&cmd::RobotOutputs>) -> snapshot::DeviceReadings,
     ) -> SimResult<()> {
         let robot_subscriber = self.device_cmds()?.subscriber_builder().create()?;
         let captures = self.device_readings()?.publisher_builder().create()?;

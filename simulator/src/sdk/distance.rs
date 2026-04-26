@@ -2,7 +2,7 @@
 
 use core::ffi::c_double;
 
-use roboscope_ipc::DistanceSnapshot;
+use roboscope_ipc::snapshot::DistanceSnapshot;
 use vex_sdk::V5_DeviceT;
 
 use crate::device::DEVICES;

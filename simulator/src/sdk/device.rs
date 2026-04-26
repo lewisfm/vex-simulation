@@ -2,7 +2,7 @@
 
 use core::ffi::{c_double, c_int};
 
-use roboscope_ipc::GenericSnapshot;
+use roboscope_ipc::snapshot::GenericSnapshot;
 pub use vex_sdk::{V5_DeviceT, V5_DeviceType};
 
 use crate::device::DEVICES;
