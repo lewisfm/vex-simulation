@@ -18,10 +18,11 @@ use roboscope_ipc::{
     PHYSICS_UPDATE_PERIOD, SMART_DEVICES_COUNT, Sample, SimServices, Subscriber,
     snapshot::{DeviceReadings, DeviceSnapshot},
 };
+use static_assertions::const_assert_ne;
 use tracing::{debug, trace};
 use vex_sdk::{V5_Device, V5_DeviceT, V5_DeviceType};
 
-use crate::sdk::vexSystemTimeGet;
+use crate::sdk::{MotorState, vexSystemTimeGet};
 
 pub static TIMESTAMP_EPOCH: LazyLock<SystemTime> = LazyLock::new(SystemTime::now);
 pub static DEVICES: Mutex<Devices> = Mutex::new(Devices::new());
@@ -34,14 +35,14 @@ pub const NUM_DEVICES_HANDLES: usize = 23;
 pub struct Devices {
     pub readings: Option<Sample<DeviceReadings>>,
     /// The state for each smart device.
-    pub smart_devices: [V5DeviceState; NUM_DEVICES_HANDLES],
+    pub smart_devices: [V5Device; NUM_DEVICES_HANDLES],
 }
 
 impl Devices {
     pub const fn new() -> Self {
         Self {
             readings: None,
-            smart_devices: [const { V5DeviceState::new() }; _],
+            smart_devices: [const { V5Device::new() }; _],
         }
     }
 
@@ -92,10 +93,25 @@ impl Devices {
         let snapshot = &readings.snapshots[device.to_port(self)];
         snapshot.try_into().ok()
     }
+
+    /// Try to resolve the given device handle to the state for a certain kind of device.
+    ///
+    /// Returns `None` if the device is the wrong type.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the device handle is invalid.
+    pub fn state_for<T>(&mut self, device: impl DeviceResolvable) -> Option<&mut T>
+    where
+        for<'a> &'a mut T: TryFrom<&'a mut V5DeviceState>,
+    {
+        let state = &mut self.smart_devices[device.to_port(self)].state;
+        state.try_into().ok()
+    }
 }
 
 /// Can be resolved to a smart port index.
-trait DeviceResolvable {
+pub trait DeviceResolvable {
     fn to_port(&self, devices: &Devices) -> usize;
 }
 
@@ -119,12 +135,12 @@ impl DeviceResolvable for *mut V5_Device {
             .checked_sub(devices.smart_devices.as_ptr().addr())
             .unwrap_or(usize::MAX); // Force an out-of-bounds panic.
 
-        let index = offset / size_of::<V5DeviceState>();
+        let index = offset / size_of::<V5Device>();
         if index >= devices.smart_devices.len() {
             panic!("Device handle is out of bounds");
         }
 
-        if offset % size_of::<V5DeviceState>() != 0 {
+        if !offset.is_multiple_of(size_of::<V5Device>()) {
             panic!("Device handle is improperly aligned");
         }
 
@@ -132,14 +148,43 @@ impl DeviceResolvable for *mut V5_Device {
     }
 }
 
-pub struct V5DeviceState {
+pub struct V5Device {
     _placeholder: u32,
+    last_known_type: V5_DeviceType,
+    state: V5DeviceState,
+}
+const_assert_ne!(size_of::<V5Device>(), 0); // Pointers to devices must be unique.
+
+impl V5Device {
+    pub const fn new() -> Self {
+        Self {
+            _placeholder: 0,
+            last_known_type: V5_DeviceType::kDeviceTypeNoSensor,
+            state: V5DeviceState::None,
+        }
+    }
+
+    pub fn set_type(&mut self, kind: V5_DeviceType) {
+        // If the port is now connected to a concretely different kind of device, reset its state.
+        // TODO: Should state be preserved over disconnects?
+        if self.last_known_type == kind || kind == V5_DeviceType::kDeviceTypeNoSensor {
+            return;
+        }
+
+        self.last_known_type = kind;
+        self.state = match kind {
+            V5_DeviceType::kDeviceTypeMotorSensor => MotorState::default().into(),
+            _ => V5DeviceState::None,
+        };
+    }
 }
 
-impl V5DeviceState {
-    pub const fn new() -> Self {
-        Self { _placeholder: 0 }
-    }
+#[derive(Debug, Default, From, TryInto)]
+#[try_into(owned, ref, ref_mut)]
+pub enum V5DeviceState {
+    #[default]
+    None,
+    Motor(MotorState),
 }
 
 /// Updates the global device registry with the latest readings.

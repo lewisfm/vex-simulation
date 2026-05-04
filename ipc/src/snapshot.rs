@@ -44,6 +44,7 @@ pub enum DeviceSnapshot {
     Empty,
     Generic(GenericSnapshot),
     Distance(DistanceSnapshot),
+    Motor(MotorSnapshot),
 }
 
 impl DeviceSnapshot {
@@ -66,6 +67,7 @@ impl DeviceSnapshot {
             DeviceSnapshot::Empty => V5_DeviceType::kDeviceTypeNoSensor,
             DeviceSnapshot::Generic(_) => V5_DeviceType::kDeviceTypeGenericSensor,
             DeviceSnapshot::Distance(_) => V5_DeviceType::kDeviceTypeDistanceSensor,
+            DeviceSnapshot::Motor(_) => V5_DeviceType::kDeviceTypeMotorSensor,
         }
     }
 }
@@ -123,11 +125,11 @@ impl Default for DistanceSnapshot {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, Eq, PartialEq, ZeroCopySend)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, ZeroCopySend, Default)]
 pub struct MotorStatus(pub u32);
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, Eq, PartialEq, ZeroCopySend)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, ZeroCopySend, Default)]
 pub struct MotorFaults(pub u32);
 
 bitflags! {
@@ -162,6 +164,8 @@ bitflags! {
 
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, ZeroCopySend, Default, From)]
+#[repr(C)]
 pub struct MotorSnapshot {
     /// Measured motor encoder tick reading, where 4096 ticks = 1 rotation.
     ///

@@ -2,13 +2,19 @@
 
 use core::ffi::c_double;
 
+use roboscope_ipc::{cmd::MotorGearset, snapshot::MotorSnapshot};
 use vex_sdk::V5_DeviceT;
 pub use vex_sdk::{
     V5_DeviceMotorPid, V5MotorBrakeMode, V5MotorControlMode, V5MotorEncoderUnits, V5MotorGearset,
 };
 
-use crate::device::DEVICES;
+use crate::device::{DEVICES, DeviceResolvable};
 
+#[derive(Debug, Default)]
+pub struct MotorState {
+    gearset: MotorGearset,
+    is_reversed: bool,
+}
 
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceMotorVelocitySet(device: V5_DeviceT, velocity: i32) {
@@ -18,11 +24,18 @@ pub extern "system" fn vexDeviceMotorVelocitySet(device: V5_DeviceT, velocity: i
 pub extern "system" fn vexDeviceMotorVelocityGet(device: V5_DeviceT) -> i32 {
     Default::default()
 }
+
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceMotorActualVelocityGet(device: V5_DeviceT) -> c_double {
-    super::sdk_unimplemented!("vexDeviceMotorActualVelocityGet");
-    Default::default()
+    let ctx = DEVICES.lock();
+    if let Some(readings) = ctx.readings_for::<MotorSnapshot>(device) {
+        // TODO: apply gearset multiplier and reversed state
+        readings.raw_velocity as f64
+    } else {
+        0.0
+    }
 }
+
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceMotorDirectionGet(device: V5_DeviceT) -> i32 {
     super::sdk_unimplemented!("vexDeviceMotorDirectionGet");
@@ -100,17 +113,30 @@ pub extern "system" fn vexDeviceMotorZeroPositionFlagGet(device: V5_DeviceT) -> 
     super::sdk_unimplemented!("vexDeviceMotorZeroPositionFlagGet");
     Default::default()
 }
+
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceMotorReverseFlagSet(device: V5_DeviceT, reverse: bool) {
-    super::sdk_unimplemented!("vexDeviceMotorReverseFlagSet");
+    let mut ctx = DEVICES.lock();
+    if let Some(state) = ctx.state_for::<MotorState>(device) {
+        state.is_reversed = reverse;
+    }
 }
+
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceMotorReverseFlagGet(device: V5_DeviceT) -> bool {
-    super::sdk_unimplemented!("vexDeviceMotorReverseFlagGet");
-    Default::default()
+    let mut ctx = DEVICES.lock();
+    if let Some(state) = ctx.state_for::<MotorState>(device) {
+        state.is_reversed
+    } else {
+        false
+    }
 }
+
 #[unsafe(no_mangle)]
-pub extern "system" fn vexDeviceMotorEncoderUnitsSet(device: V5_DeviceT, units: V5MotorEncoderUnits) {
+pub extern "system" fn vexDeviceMotorEncoderUnitsSet(
+    device: V5_DeviceT,
+    units: V5MotorEncoderUnits,
+) {
     super::sdk_unimplemented!("vexDeviceMotorEncoderUnitsSet");
 }
 #[unsafe(no_mangle)]
@@ -137,7 +163,10 @@ pub extern "system" fn vexDeviceMotorPositionGet(device: V5_DeviceT) -> c_double
     Default::default()
 }
 #[unsafe(no_mangle)]
-pub extern "system" fn vexDeviceMotorPositionRawGet(device: V5_DeviceT, timestamp: *mut u32) -> i32 {
+pub extern "system" fn vexDeviceMotorPositionRawGet(
+    device: V5_DeviceT,
+    timestamp: *mut u32,
+) -> i32 {
     super::sdk_unimplemented!("vexDeviceMotorPositionRawGet");
     Default::default()
 }
@@ -189,10 +218,20 @@ pub extern "system" fn vexDeviceMotorVoltageGet(device: V5_DeviceT) -> i32 {
     super::sdk_unimplemented!("vexDeviceMotorVoltageGet");
     Default::default()
 }
+
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceMotorGearingSet(device: V5_DeviceT, gearset: V5MotorGearset) {
-    super::sdk_unimplemented!("vexDeviceMotorGearingSet");
+    let Some(gearset) = MotorGearset::new(gearset) else {
+        tracing::warn!(kind = ?gearset, "Unknown gearset");
+        return;
+    };
+
+    let mut ctx = DEVICES.lock();
+    if let Some(state) = ctx.state_for::<MotorState>(device) {
+        state.gearset = gearset;
+    }
 }
+
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceMotorGearingGet(device: V5_DeviceT) -> V5MotorGearset {
     super::sdk_unimplemented!("vexDeviceMotorGearingGet");
@@ -212,11 +251,17 @@ pub extern "system" fn vexDeviceMotorVelocityUpdate(device: V5_DeviceT, velocity
     super::sdk_unimplemented!("vexDeviceMotorVelocityUpdate");
 }
 #[unsafe(no_mangle)]
-pub extern "system" fn vexDeviceMotorPositionPidSet(device: V5_DeviceT, pid: *mut V5_DeviceMotorPid) {
+pub extern "system" fn vexDeviceMotorPositionPidSet(
+    device: V5_DeviceT,
+    pid: *mut V5_DeviceMotorPid,
+) {
     super::sdk_unimplemented!("vexDeviceMotorPositionPidSet");
 }
 #[unsafe(no_mangle)]
-pub extern "system" fn vexDeviceMotorVelocityPidSet(device: V5_DeviceT, pid: *mut V5_DeviceMotorPid) {
+pub extern "system" fn vexDeviceMotorVelocityPidSet(
+    device: V5_DeviceT,
+    pid: *mut V5_DeviceMotorPid,
+) {
     super::sdk_unimplemented!("vexDeviceMotorVelocityPidSet");
 }
 #[unsafe(no_mangle)]

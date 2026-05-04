@@ -4,6 +4,7 @@
 
 use derive_more::{From, TryInto};
 use iceoryx2::prelude::ZeroCopySend;
+use vex_sdk::V5MotorGearset;
 
 use crate::SMART_DEVICES_COUNT;
 
@@ -63,4 +64,15 @@ pub enum MotorGearset {
     #[default]
     Ratio18,
     Ratio06,
+}
+
+impl MotorGearset {
+    pub const fn new(gearset: V5MotorGearset) -> Option<Self> {
+        Some(match gearset {
+            V5MotorGearset::kMotorGearSet_06 => Self::Ratio06,
+            V5MotorGearset::kMotorGearSet_18 => Self::Ratio18,
+            V5MotorGearset::kMotorGearSet_36 => Self::Ratio36,
+            _ => return None,
+        })
+    }
 }
