@@ -72,6 +72,7 @@ impl SimServices {
             .node
             .service_builder(&name)
             .publish_subscribe::<T>()
+            .history_size(1)
             .open_or_create()?;
 
         Ok(service)
@@ -94,7 +95,9 @@ impl SimServices {
         mut physics_sim: impl FnMut(Option<&cmd::RobotOutputs>) -> snapshot::DeviceReadings,
     ) -> SimResult<()> {
         let robot_subscriber = self.device_cmds()?.subscriber_builder().create()?;
-        let captures = self.device_readings()?.publisher_builder().create()?;
+        let captures = self.device_readings()?
+            .publisher_builder()
+            .create()?;
 
         while self.node.wait(PHYSICS_UPDATE_PERIOD).is_ok() {
             let robot_outputs = robot_subscriber.receive()?;

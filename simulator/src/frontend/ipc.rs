@@ -1,11 +1,10 @@
-use std::{mem::MaybeUninit, ptr, sync::Arc, thread, time::Duration};
+use std::{mem::MaybeUninit, sync::Arc, thread, time::Duration};
 
 use roboscope_ipc::{Config, DisplayFrame, SimServices};
 use tracing::trace;
 
 use crate::{
-    device::start_device_handler,
-    display::{DISPLAY, FRAME_FINISHED},
+    device::{DEVICES_STREAM, DevicesStream}, display::{DISPLAY, FRAME_FINISHED}
 };
 
 pub fn start(name: &str, entrypoint: impl FnOnce() + Send + 'static) -> anyhow::Result<()> {
@@ -17,7 +16,7 @@ pub fn start(name: &str, entrypoint: impl FnOnce() + Send + 'static) -> anyhow::
     )?);
 
     start_renderer(ipc.clone());
-    start_device_handler(ipc.clone());
+    _ = DEVICES_STREAM.set(DevicesStream::new(ipc.clone())?);
     let user_code = thread::spawn(entrypoint);
 
     while ipc.node.wait(Duration::from_millis(10)).is_ok() {

@@ -7,13 +7,15 @@ pub use vex_sdk::{
     V5_DeviceMotorPid, V5MotorBrakeMode, V5MotorControlMode, V5MotorEncoderUnits, V5MotorGearset,
 };
 
+use crate::device::DEVICES;
+
+
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceMotorVelocitySet(device: V5_DeviceT, velocity: i32) {
     super::sdk_unimplemented!("vexDeviceMotorVelocitySet");
 }
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceMotorVelocityGet(device: V5_DeviceT) -> i32 {
-    super::sdk_unimplemented!("vexDeviceMotorVelocityGet");
     Default::default()
 }
 #[unsafe(no_mangle)]

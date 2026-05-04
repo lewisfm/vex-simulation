@@ -7,16 +7,33 @@
 //! [`SimServices::device_readings`](crate::SimServices::device_readings) and
 //! [`SimServices::publish_device_readings`](crate::SimServices::publish_device_readings).
 
+use std::time::{Duration, SystemTime};
+
 use bitflags::bitflags;
 use derive_more::{From, TryInto};
 use iceoryx2::prelude::ZeroCopySend;
+use vex_sdk::V5_DeviceType;
 
 use crate::SMART_DEVICES_COUNT;
 
 /// A packet which reports the most recent readings from all of a V5 brain's smart ports.
 #[derive(Debug, Copy, Clone, PartialEq, ZeroCopySend, Default)]
 #[repr(C)]
-pub struct DeviceReadings(pub [DeviceSnapshot; SMART_DEVICES_COUNT]);
+pub struct DeviceReadings {
+    /// The captured device state.
+    pub snapshots: [DeviceSnapshot; SMART_DEVICES_COUNT],
+    /// Duration in milliseconds since [`UNIX_EPOCH`] which these readings are from.
+    ///
+    /// [`UNIX_EPOCH`]: std::time::SystemTime::UNIX_EPOCH
+    pub timestamp: u64,
+}
+
+impl DeviceReadings {
+    /// Get the time at which the readings were taken.
+    pub fn system_time(&self) -> SystemTime {
+        SystemTime::UNIX_EPOCH + Duration::from_millis(self.timestamp)
+    }
+}
 
 /// A type-erased reading from a sensor or other device.
 #[derive(Debug, Copy, Clone, PartialEq, ZeroCopySend, Default, From, TryInto)]
@@ -27,6 +44,30 @@ pub enum DeviceSnapshot {
     Empty,
     Generic(GenericSnapshot),
     Distance(DistanceSnapshot),
+}
+
+impl DeviceSnapshot {
+    pub fn readings_mut<T>(&mut self) -> Option<&mut T>
+    where
+        for<'a> &'a mut T: TryFrom<&'a mut DeviceSnapshot>,
+    {
+        self.try_into().ok()
+    }
+
+    pub fn readings<T>(&self) -> Option<&T>
+    where
+        for<'a> &'a T: TryFrom<&'a DeviceSnapshot>,
+    {
+        self.try_into().ok()
+    }
+
+    pub fn kind(&self) -> V5_DeviceType {
+        match self {
+            DeviceSnapshot::Empty => V5_DeviceType::kDeviceTypeNoSensor,
+            DeviceSnapshot::Generic(_) => V5_DeviceType::kDeviceTypeGenericSensor,
+            DeviceSnapshot::Distance(_) => V5_DeviceType::kDeviceTypeDistanceSensor,
+        }
+    }
 }
 
 /// A reading from a Generic device.

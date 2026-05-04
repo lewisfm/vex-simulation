@@ -2136,6 +2136,7 @@ dependencies = [
  "derive_more",
  "iceoryx2",
  "thiserror 2.0.18",
+ "vex-sdk 0.28.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

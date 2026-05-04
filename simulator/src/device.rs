@@ -5,11 +5,11 @@
 use std::{
     ptr,
     sync::{
-        Arc,
+        Arc, LazyLock, OnceLock,
         atomic::{AtomicU32, Ordering},
     },
     thread,
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime},
 };
 
 use derive_more::{AsRef, From, TryInto};
@@ -19,93 +19,57 @@ use roboscope_ipc::{
     snapshot::{DeviceReadings, DeviceSnapshot},
 };
 use tracing::{debug, trace};
-use vex_sdk::{V5_DeviceT, V5_DeviceType};
+use vex_sdk::{V5_Device, V5_DeviceT, V5_DeviceType};
 
 use crate::sdk::vexSystemTimeGet;
 
-pub fn start_device_handler(ipc: Arc<SimServices>) {
-    thread::Builder::new()
-        .name("Sim Device Handler".into())
-        .spawn(move || {
-            debug!("Connecting to physics provider");
-            let dev_handler = DeviceHandler::new(ipc.clone()).expect("created device handler");
+pub static TIMESTAMP_EPOCH: LazyLock<SystemTime> = LazyLock::new(SystemTime::now);
+pub static DEVICES: Mutex<Devices> = Mutex::new(Devices::new());
+pub static DEVICES_STREAM: OnceLock<DevicesStream> = OnceLock::new();
+pub const NUM_DEVICES_HANDLES: usize = 23;
 
-            while ipc.node.wait(PHYSICS_UPDATE_PERIOD).is_ok() {
-                dev_handler.update().expect("device update OK");
-            }
-        })
-        .unwrap();
-}
-
-struct DeviceHandler {
-    readings: Subscriber<DeviceReadings>,
-}
-
-impl DeviceHandler {
-    pub fn new(ipc: Arc<SimServices>) -> anyhow::Result<Self> {
-        let captures = ipc.device_readings()?.subscriber_builder().create()?;
-
-        Ok(Self { readings: captures })
-    }
-
-    pub fn update(&self) -> anyhow::Result<()> {
-        if let Some(sample) = self.readings.receive()? {
-            DEVICES.queue_sample(sample);
-        }
-
-        Ok(())
-    }
-}
-
-struct QueuedSample {
-    inner: Sample<DeviceReadings>,
-    timestamp: u32,
-}
-
-impl QueuedSample {
-    pub fn snapshots(&self) -> &[DeviceSnapshot] {
-        &self.inner.0
-    }
-}
-
-pub static DEVICES: Devices = Devices::new();
-const NUM_DEVICES_HANDLES: usize = 23;
-
+/// Access to device readings and device I/O.
+///
+/// This data is exposed via the VEX SDK implementation in the [`crate::sdk`] module.
 pub struct Devices {
-    queued_sample: Mutex<Option<QueuedSample>>,
-    timestamp: AtomicU32,
-    pub smart_devices: [V5Device; NUM_DEVICES_HANDLES],
+    pub readings: Option<Sample<DeviceReadings>>,
+    /// The state for each smart device.
+    pub smart_devices: [V5DeviceState; NUM_DEVICES_HANDLES],
 }
 
 impl Devices {
     pub const fn new() -> Self {
         Self {
-            queued_sample: Mutex::new(None),
-            timestamp: AtomicU32::new(0),
-            smart_devices: [const { V5Device::new() }; _],
+            readings: None,
+            smart_devices: [const { V5DeviceState::new() }; _],
         }
     }
 
-    pub fn queue_sample(&self, sample: Sample<DeviceReadings>) {
-        trace!(?sample, "Queueing new device sample");
-        *self.queued_sample.lock() = Some(QueuedSample {
-            inner: sample,
-            timestamp: vexSystemTimeGet(),
-        });
+    /// Get the timestamp at which the most recent device packets were created.
+    ///
+    /// On a real device, this value indicates when CPU0 parsed the device packet, which happens
+    /// every 10ms. In the simulator, the physics backend takes the role of CPU0 in providing us
+    /// with physics updates every 10ms (see [`PHYSICS_UPDATE_PERIOD`]), so the timestamp indicates
+    /// when the physics backend created the packet.
+    ///
+    /// Just like [`vexSystemTimeGet`], device timestamps are millisecond precision and timestamp
+    /// `0` occurs at the start of the robot program.
+    pub fn readings_timestamp(&self) -> u32 {
+        if let Some(readings) = &self.readings {
+            let creation_time = readings.system_time();
+            let time_since_epoch = creation_time
+                .duration_since(*TIMESTAMP_EPOCH)
+                .unwrap_or_default();
+            time_since_epoch.as_millis() as u32
+        } else {
+            0
+        }
     }
 
-    /// Copy the latest device readings (if any are available) from shared memory.
-    pub fn update_readings(&self) {
+    /// Apply the given device readings.
+    pub fn update_readings(&mut self, sample: Sample<DeviceReadings>) {
         trace!("Committing queued sample");
-
-        if let Some(sample) = self.queued_sample.lock().take() {
-            for (i, &snapshot) in sample.snapshots().iter().enumerate() {
-                *self.smart_devices[i].0.lock() = V5DeviceData {
-                    snapshot,
-                    timestamp: sample.timestamp,
-                };
-            }
-        }
+        self.readings = Some(sample);
     }
 
     pub fn handle_for(&self, port: u32) -> Option<V5_DeviceT> {
@@ -113,69 +77,90 @@ impl Devices {
         Some(ptr::from_ref(device).cast_mut().cast())
     }
 
-    pub fn get_by_handle(&self, handle: V5_DeviceT) -> Option<&V5Device> {
-        let offset = handle
-            .addr()
-            .checked_sub(self.smart_devices.as_ptr().addr())?;
-
-        if offset % size_of::<V5Device>() != 0 {
-            return None;
-        }
-
-        self.smart_devices.get(offset / size_of::<V5Device>())
-    }
-
-    pub unsafe fn get_by_handle_unchecked(&self, handle: V5_DeviceT) -> &V5Device {
-        // Better than dereferencing the pointer because you get precondition checks in debug mode.
-        unsafe { self.get_by_handle(handle).unwrap_unchecked() }
-    }
-}
-
-pub struct V5DeviceData {
-    snapshot: DeviceSnapshot,
-    timestamp: u32,
-}
-
-impl V5DeviceData {
-    pub const fn new() -> Self {
-        Self {
-            snapshot: DeviceSnapshot::Empty,
-            timestamp: 0,
-        }
-    }
-
-    pub fn readings_mut<T>(&mut self) -> Option<&mut T>
-    where
-        for<'a> &'a mut T: TryFrom<&'a mut DeviceSnapshot>,
-    {
-        (&mut self.snapshot).try_into().ok()
-    }
-
-    pub fn readings<T>(&self) -> Option<&T>
+    /// Try to resolve the given device handle to readings for a certain kind of device.
+    ///
+    /// Returns `None` if the device is the wrong type.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the device handle is invalid.
+    pub fn readings_for<T>(&self, device: impl DeviceResolvable) -> Option<&T>
     where
         for<'a> &'a T: TryFrom<&'a DeviceSnapshot>,
     {
-        (&self.snapshot).try_into().ok()
-    }
-
-    pub fn timestamp(&self) -> u32 {
-        self.timestamp
+        let readings = self.readings.as_ref()?;
+        let snapshot = &readings.snapshots[device.to_port(self)];
+        snapshot.try_into().ok()
     }
 }
 
-#[derive(AsRef)]
-pub struct V5Device(pub Mutex<V5DeviceData>);
+/// Can be resolved to a smart port index.
+trait DeviceResolvable {
+    fn to_port(&self, devices: &Devices) -> usize;
+}
 
-impl V5Device {
+/// A direct smart port index.
+impl DeviceResolvable for usize {
+    fn to_port(&self, devices: &Devices) -> usize {
+        *self
+    }
+}
+
+/// A device handle.
+impl DeviceResolvable for *mut V5_Device {
+    /// Convert the device handle to a port number.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the device handle is unaligned or out of bounds.
+    fn to_port(&self, devices: &Devices) -> usize {
+        let offset = self
+            .addr()
+            .checked_sub(devices.smart_devices.as_ptr().addr())
+            .unwrap_or(usize::MAX); // Force an out-of-bounds panic.
+
+        let index = offset / size_of::<V5DeviceState>();
+        if index >= devices.smart_devices.len() {
+            panic!("Device handle is out of bounds");
+        }
+
+        if offset % size_of::<V5DeviceState>() != 0 {
+            panic!("Device handle is improperly aligned");
+        }
+
+        index
+    }
+}
+
+pub struct V5DeviceState {
+    _placeholder: u32,
+}
+
+impl V5DeviceState {
     pub const fn new() -> Self {
-        Self(Mutex::new(V5DeviceData::new()))
+        Self { _placeholder: 0 }
+    }
+}
+
+/// Updates the global device registry with the latest readings.
+pub struct DevicesStream {
+    readings: Subscriber<DeviceReadings>,
+}
+
+impl DevicesStream {
+    /// Subscribe to the system device readings channel using the given IPC client.
+    pub fn new(ipc: Arc<SimServices>) -> anyhow::Result<Self> {
+        let captures = ipc.device_readings()?.subscriber_builder().create()?;
+
+        Ok(Self { readings: captures })
     }
 
-    pub fn kind(&self) -> V5_DeviceType {
-        match &self.as_ref().lock().snapshot {
-            DeviceSnapshot::Empty => V5_DeviceType::kDeviceTypeNoSensor,
-            DeviceSnapshot::Generic(_) => V5_DeviceType::kDeviceTypeGenericSensor,
-            DeviceSnapshot::Distance(_) => V5_DeviceType::kDeviceTypeDistanceSensor,
+    /// Publish the latest readings to the process's device registry.
+    pub fn update(&self) -> anyhow::Result<()> {
+        if let Some(sample) = self.readings.receive()? {
+            DEVICES.lock().update_readings(sample);
         }
+
+        Ok(())
     }
 }

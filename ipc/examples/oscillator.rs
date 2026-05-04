@@ -15,7 +15,7 @@ fn main() {
         vx -= x * 0.0001;
         x += vx;
 
-        readings.0[0] = DistanceSnapshot {
+        readings.snapshots[0] = DistanceSnapshot {
             distance: (x + 500.0) as u32,
             ..Default::default()
         }

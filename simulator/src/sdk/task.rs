@@ -6,11 +6,11 @@ use std::time::{Duration, Instant};
 use parking_lot::Mutex;
 use vex_sdk::V5_TouchEvent;
 
-use crate::{canvas::HEADER_HEIGHT, device::DEVICES, display::DISPLAY};
+use crate::{canvas::HEADER_HEIGHT, device::{DEVICES, DEVICES_STREAM}, display::DISPLAY};
 
 #[unsafe(no_mangle)]
-pub extern "system" fn vexTaskAdd(
-    callback: unsafe extern "C" fn() -> c_int,
+pub unsafe extern "system" fn vexTaskAdd(
+    callback: extern "C" fn() -> c_int,
     interval: c_int,
     label: *const c_char,
 ) {
@@ -96,7 +96,12 @@ pub fn update_touch_status() {
 }
 
 pub fn update_device_readings() {
-    DEVICES.update_readings();
+    if let Some(stream) = DEVICES_STREAM.get() {
+        let result = stream.update();
+        if let Err(error) = result {
+            tracing::error!(%error, "Failed to update devices");
+        }
+    }
 }
 
 #[unsafe(no_mangle)]

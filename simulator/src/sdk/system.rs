@@ -30,10 +30,25 @@ pub extern "system" fn vexSystemTimeGet() -> u32 {
     super::sdk_unimplemented!("vexSystemTimeGet");
     Default::default()
 }
+
+/// Get the current time.
+///
+/// # Safety
+///
+/// `pTime` must be valid for writes.
 #[unsafe(no_mangle)]
 pub unsafe extern "system" fn vexGettime(pTime: *mut time) {
     super::sdk_unimplemented!("vexGettime");
+    unsafe {
+        *pTime = time::default();
+    }
 }
+
+/// Get the current date.
+///
+/// # Safety
+///
+/// `pDate` must be valid for writes.
 #[unsafe(no_mangle)]
 pub unsafe extern "system" fn vexGetdate(pDate: *mut date) {
     super::sdk_unimplemented!("vexGetdate");
@@ -196,13 +211,13 @@ pub unsafe extern "C" fn vex_snprintf(
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "system" fn vexSystemVersion() -> u32 {
+pub extern "system" fn vexSystemVersion() -> u32 {
     super::sdk_unimplemented!("vexSystemVersion");
     Default::default()
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "system" fn vexStdlibVersion() -> u32 {
+pub extern "system" fn vexStdlibVersion() -> u32 {
     super::sdk_unimplemented!("vexStdlibVersion");
     Default::default()
 }
