@@ -16,7 +16,7 @@ use derive_more::{AsRef, From, TryInto};
 use parking_lot::{Mutex, MutexGuard};
 use roboscope_ipc::{
     PHYSICS_UPDATE_PERIOD, SMART_DEVICES_COUNT, Sample, SimServices, Subscriber,
-    snapshot::{DeviceReadings, DeviceSnapshot},
+    snapshot::{DeviceReadings, DeviceSnapshot, DistanceSnapshot, GenericSnapshot, MotorSnapshot},
 };
 use static_assertions::const_assert_ne;
 use tracing::{debug, trace};
@@ -78,20 +78,29 @@ impl Devices {
         Some(ptr::from_ref(device).cast_mut().cast())
     }
 
-    /// Try to resolve the given device handle to readings for a certain kind of device.
+    /// Try to resolve the given device handle to readings and state for a certain kind of device.
     ///
     /// Returns `None` if the device is the wrong type.
     ///
     /// # Panics
     ///
     /// Panics if the device handle is invalid.
-    pub fn readings_for<T>(&self, device: impl DeviceResolvable) -> Option<&T>
+    pub fn resolve<T>(&mut self, device: impl DeviceResolvable) -> Option<(&T, T::State<'_>)>
     where
+        T: TrackedDevice,
         for<'a> &'a T: TryFrom<&'a DeviceSnapshot>,
     {
         let readings = self.readings.as_ref()?;
-        let snapshot = &readings.snapshots[device.to_port(self)];
-        snapshot.try_into().ok()
+        let port = device.to_port(self);
+
+        let snapshot = &readings.snapshots[port];
+        let readings = snapshot.try_into().ok()?;
+
+        let Ok(state) = (&mut self.smart_devices[port].state).try_into() else {
+            panic!("State should match readings");
+        };
+
+        Some((readings, state))
     }
 
     /// Try to resolve the given device handle to the state for a certain kind of device.
@@ -185,6 +194,32 @@ pub enum V5DeviceState {
     #[default]
     None,
     Motor(MotorState),
+}
+
+/// An association between a snapshot type and associated device state.
+///
+/// Allows the [`Devices::resolve`] function to automatically figure out what kind of state to get
+/// for a certain type of device.
+pub trait TrackedDevice {
+    // Tracked devices must have an associated State type which can be obtained via references
+    // to `V5DeviceState`. `()` is a valid kind of state, too.
+    type State<'a>: TryFrom<&'a mut V5DeviceState>;
+}
+
+impl TrackedDevice for DeviceSnapshot {
+    type State<'a> = &'a mut V5DeviceState;
+}
+
+impl TrackedDevice for GenericSnapshot {
+    type State<'a> = ();
+}
+
+impl TrackedDevice for DistanceSnapshot {
+    type State<'a> = ();
+}
+
+impl TrackedDevice for MotorSnapshot {
+    type State<'a> = &'a mut MotorState;
 }
 
 /// Updates the global device registry with the latest readings.

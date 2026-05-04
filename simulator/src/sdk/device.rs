@@ -106,22 +106,19 @@ pub unsafe extern "system" fn vexDeviceGetTimestamp(_device: V5_DeviceT) -> u32 
 
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceGenericValueGet(device: V5_DeviceT) -> i32 {
-    let ctx = DEVICES.lock();
-    let readings = ctx
-        .readings_for::<GenericSnapshot>(device)
-        .copied()
-        .unwrap_or_default();
-
-    readings.value
+    let mut ctx = DEVICES.lock();
+    ctx.resolve::<GenericSnapshot>(device)
+        .map(|(snapshot, _)| snapshot.value)
+        .unwrap_or_default()
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceTypeGetByIndex(index: u32) -> V5_DeviceType {
     let index = index as usize;
-    let ctx = DEVICES.lock();
+    let mut ctx = DEVICES.lock();
 
     if index < SMART_DEVICES_COUNT
-        && let Some(snapshot) = ctx.readings_for::<DeviceSnapshot>(index)
+        && let Some((snapshot, _)) = ctx.resolve::<DeviceSnapshot>(index)
     {
         snapshot.kind()
     } else {

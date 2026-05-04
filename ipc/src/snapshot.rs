@@ -164,6 +164,8 @@ bitflags! {
 
 }
 
+pub const MOTOR_TICKS_PER_ROTATION: usize = 4096;
+
 #[derive(Debug, Copy, Clone, PartialEq, ZeroCopySend, Default, From)]
 #[repr(C)]
 pub struct MotorSnapshot {

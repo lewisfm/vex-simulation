@@ -14,9 +14,9 @@ use crate::device::DEVICES;
 /// Panics if the device handle is invalid.
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceDistanceDistanceGet(device: V5_DeviceT) -> u32 {
-    let ctx = DEVICES.lock();
+    let mut ctx = DEVICES.lock();
 
-    if let Some(snapshot) = ctx.readings_for::<DistanceSnapshot>(device) {
+    if let Some((snapshot, _)) = ctx.resolve::<DistanceSnapshot>(device) {
         snapshot.distance
     } else {
         9999
@@ -30,9 +30,9 @@ pub extern "system" fn vexDeviceDistanceDistanceGet(device: V5_DeviceT) -> u32 {
 /// Panics if the device handle is invalid.
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceDistanceConfidenceGet(device: V5_DeviceT) -> u32 {
-    let ctx = DEVICES.lock();
+    let mut ctx = DEVICES.lock();
 
-    if let Some(snapshot) = ctx.readings_for::<DistanceSnapshot>(device) {
+    if let Some((snapshot, _)) = ctx.resolve::<DistanceSnapshot>(device) {
         snapshot.confidence
     } else {
         0
@@ -46,9 +46,9 @@ pub extern "system" fn vexDeviceDistanceConfidenceGet(device: V5_DeviceT) -> u32
 /// Panics if the device handle is invalid.
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceDistanceStatusGet(device: V5_DeviceT) -> u32 {
-    let ctx = DEVICES.lock();
+    let mut ctx = DEVICES.lock();
 
-    if let Some(snapshot) = ctx.readings_for::<DistanceSnapshot>(device) {
+    if let Some((snapshot, _)) = ctx.resolve::<DistanceSnapshot>(device) {
         snapshot.status
     } else {
         0
@@ -62,9 +62,9 @@ pub extern "system" fn vexDeviceDistanceStatusGet(device: V5_DeviceT) -> u32 {
 /// Panics if the device handle is invalid.
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceDistanceObjectSizeGet(device: V5_DeviceT) -> i32 {
-    let ctx = DEVICES.lock();
+    let mut ctx = DEVICES.lock();
 
-    if let Some(snapshot) = ctx.readings_for::<DistanceSnapshot>(device) {
+    if let Some((snapshot, _)) = ctx.resolve::<DistanceSnapshot>(device) {
         snapshot.object_size
     } else {
         -1
@@ -78,9 +78,9 @@ pub extern "system" fn vexDeviceDistanceObjectSizeGet(device: V5_DeviceT) -> i32
 /// Panics if the device handle is invalid.
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceDistanceObjectVelocityGet(device: V5_DeviceT) -> c_double {
-    let ctx = DEVICES.lock();
+    let mut ctx = DEVICES.lock();
 
-    if let Some(snapshot) = ctx.readings_for::<DistanceSnapshot>(device) {
+    if let Some((snapshot, _)) = ctx.resolve::<DistanceSnapshot>(device) {
         snapshot.object_velocity
     } else {
         0.0

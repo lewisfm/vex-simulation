@@ -60,19 +60,31 @@ pub enum MotorControlMode {
 #[derive(Debug, Copy, Clone, PartialEq, ZeroCopySend, Default, From)]
 #[repr(C)]
 pub enum MotorGearset {
-    Ratio36,
+    /// 36&times; slower than the base motor speed. (Red cartridge)
+    Ratio36To1,
+    /// The V5's "Standard" gearing, 18&times; slower than the base motor speed. (Green cartridge)
     #[default]
-    Ratio18,
-    Ratio06,
+    Ratio18To1,
+    /// 6&times; slower than the base motor speed. (Blue cartridge)
+    Ratio06To1,
 }
 
 impl MotorGearset {
     pub const fn new(gearset: V5MotorGearset) -> Option<Self> {
         Some(match gearset {
-            V5MotorGearset::kMotorGearSet_06 => Self::Ratio06,
-            V5MotorGearset::kMotorGearSet_18 => Self::Ratio18,
-            V5MotorGearset::kMotorGearSet_36 => Self::Ratio36,
+            V5MotorGearset::kMotorGearSet_06 => Self::Ratio06To1,
+            V5MotorGearset::kMotorGearSet_18 => Self::Ratio18To1,
+            V5MotorGearset::kMotorGearSet_36 => Self::Ratio36To1,
             _ => return None,
         })
+    }
+
+    #[must_use]
+    pub const fn multiplier(self) -> f64 {
+        match self {
+            Self::Ratio36To1 => 1.0 / 36.0,
+            Self::Ratio18To1 => 1.0 / 18.0,
+            Self::Ratio06To1 => 1.0 / 6.0,
+        }
     }
 }

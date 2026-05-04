@@ -2,7 +2,7 @@
 
 use core::ffi::c_double;
 
-use roboscope_ipc::{cmd::MotorGearset, snapshot::MotorSnapshot};
+use roboscope_ipc::{cmd::MotorGearset, snapshot::{DeviceSnapshot, MOTOR_TICKS_PER_ROTATION, MotorSnapshot}};
 use vex_sdk::V5_DeviceT;
 pub use vex_sdk::{
     V5_DeviceMotorPid, V5MotorBrakeMode, V5MotorControlMode, V5MotorEncoderUnits, V5MotorGearset,
@@ -22,25 +22,53 @@ pub extern "system" fn vexDeviceMotorVelocitySet(device: V5_DeviceT, velocity: i
 }
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceMotorVelocityGet(device: V5_DeviceT) -> i32 {
+    super::sdk_unimplemented!("vexDeviceMotorVelocityGet");
     Default::default()
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceMotorActualVelocityGet(device: V5_DeviceT) -> c_double {
-    let ctx = DEVICES.lock();
-    if let Some(readings) = ctx.readings_for::<MotorSnapshot>(device) {
-        // TODO: apply gearset multiplier and reversed state
-        readings.raw_velocity as f64
+    let mut ctx = DEVICES.lock();
+
+    if let Some((readings, state)) = ctx.resolve::<MotorSnapshot>(device) {
+        let ticks_per_second = readings.raw_velocity as f64;
+        let rpm = ticks_per_second / MOTOR_TICKS_PER_ROTATION as f64 * 60.0;
+        let mut adjusted_rpm = rpm * state.gearset.multiplier();
+
+        if state.is_reversed {
+            adjusted_rpm *= -1.0;
+        }
+
+        adjusted_rpm
     } else {
         0.0
     }
 }
 
+/// Get the direction of movement of the motor's measured velocity.
+///
+/// Returns 1 if it's moving forwards, 0 if it's stationary, and -1 if it's moving backwards.
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceMotorDirectionGet(device: V5_DeviceT) -> i32 {
-    super::sdk_unimplemented!("vexDeviceMotorDirectionGet");
-    Default::default()
+    const VELOCITY_DEADBAND_TPS: u32 = 10; // TODO: Below what velocity does this function return 0?
+
+    let mut ctx = DEVICES.lock();
+    if let Some((snapshot, state)) = ctx.resolve::<MotorSnapshot>(device) {
+        let mut velocity = snapshot.raw_velocity;
+        if state.is_reversed {
+            velocity *= -1;
+        }
+
+        if velocity.abs() < VELOCITY_DEADBAND_TPS as i32 {
+            return 0;
+        }
+
+        velocity.signum()
+    } else {
+        0
+    }
 }
+
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceMotorModeSet(device: V5_DeviceT, mode: V5MotorControlMode) {
     super::sdk_unimplemented!("vexDeviceMotorModeSet");
