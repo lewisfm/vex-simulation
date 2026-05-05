@@ -1,10 +1,6 @@
 # RoboScope - VEX V5 Simulation
 
-This repository contains an ecosystem of projects used for VEX V5 simulation, known as RoboScope collectively (this is a working name). The end-goal for this project is to provide a way for users to design their robot code and train their drivers even when access to a physical robot is limited. This project is developed using only publicly-available or measurable information about the behavior of VEX products.
-
-Right now this has an almost pixel-accurate V5 display simulator. It's difficult to get the text
-drawing to have the right appearance of "boldness" but the size and placement of drawn text should
-match a V5 brain very well.
+RoboScope is an enhanced desktop SDK for vexide with features like display simulation and the ability to connect to a physics engine. The end-goal for this project is to provide a way for users to design their robot code and train their drivers even when access to a physical robot is limited. This project is developed using only publicly-available or measurable information about the behavior of VEX products.
 
 ![Display simulator](./assets/display.gif)
 
