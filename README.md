@@ -8,6 +8,18 @@ match a V5 brain very well.
 
 ![Display simulator](./assets/display.gif)
 
+## Getting started
+
+Add vex-sdk-simulator as a dependency and change your program entrypoint to call `vex_sdk_simulator::run_simulator`.
+
+Then `cargo run`. If you would like to see display output:
+
+```sh
+cargo install --git https://github.com/lewisfm/vex-simulation roboscope-viewer
+```
+
+Then run `roboscope-viewer` while your program is running.
+
 ## Projects
 
 - [Brain Simulator] aka `vex-sdk-desktop`: Drop-in replacement SDK library which provides desktop
@@ -64,3 +76,8 @@ As a convenience, you can completely disable IPC support and instead open the di
 ```sh
 cargo run --example display -F vex-sdk-desktop/windowed
 ```
+
+## Troubleshooting
+
+If you get a stack overflow, make sure that your display drawing code is not allocating any large arrays on the stack. The VEX V5 has a very large stack compared to most operating systems.
+
