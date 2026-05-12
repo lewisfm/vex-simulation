@@ -1,6 +1,10 @@
 use std::{mem::MaybeUninit, sync::Arc, thread, time::Duration};
 
-use roboscope_ipc::{Config, SimServices, display::DisplayFrame};
+use roboscope_ipc::{
+    Config, SimServices,
+    display::{DISPLAY_UPDATE_PERIOD, DisplayFrame},
+    error::SimResult,
+};
 use tracing::trace;
 
 use crate::{
@@ -10,6 +14,7 @@ use crate::{
 };
 
 pub fn start(name: &str) -> anyhow::Result<()> {
+    tracing::debug!("Starting IPC simulator frontend");
     DISPLAY.lock().set_program_name(name);
 
     let ipc = Arc::new(SimServices::join(
@@ -17,33 +22,53 @@ pub fn start(name: &str) -> anyhow::Result<()> {
         &Config::default(),
     )?);
 
-    start_renderer(ipc.clone());
-    _ = DEVICES_STREAM.set(DevicesStream::new(ipc.clone())?);
+    *DEVICES_STREAM.lock() = Some(DevicesStream::new(ipc.clone())?);
+    *TOUCH_SUBSCRIBER.lock() = Some(
+        ipc.display_input()
+            .unwrap()
+            .subscriber_builder()
+            .create()
+            .unwrap(),
+    );
+
+    thread::Builder::new()
+        .name("Simulator Background Thread".into())
+        .spawn(move || {
+            if let Err(err) = ipc_thread(ipc) {
+                tracing::error!(%err, "Sim background thread failed");
+            }
+
+            // Either the user has exited or IPC has failed, so shut down the other IPC handles.
+            *DEVICES_STREAM.lock() = None;
+            *TOUCH_SUBSCRIBER.lock() = None;
+
+            std::process::exit(1);
+        })
+        .unwrap();
 
     Ok(())
 }
 
-fn start_renderer(ipc: Arc<SimServices>) {
-    TOUCH_SUBSCRIBER
-        .set(
-            ipc.display_input()
-                .unwrap()
-                .subscriber_builder()
-                .create()
-                .unwrap(),
-        )
-        .expect("Touch subscriber should be unset");
+fn ipc_thread(ipc: Arc<SimServices>) -> SimResult<()> {
+    let frames = ipc.display_frames()?.publisher_builder().create()?;
 
-    thread::Builder::new()
-        .name("Sim Display Render".into())
-        .spawn(move || {
-            // SAFETY: render_frame initializes the frame
-            unsafe {
-                ipc.publish_display(publish_frame).unwrap();
-            }
-        })
-        .unwrap();
+    // Break out of the loop when the user presses Ctrl-C or we receive SIGTERM.
+    while ipc.node.wait(*DISPLAY_UPDATE_PERIOD).is_ok() {
+        let mut next_frame = frames.loan_uninit()?;
+
+        publish_frame(next_frame.payload_mut());
+
+        // SAFETY: init'd by renderer
+        let sample = unsafe { next_frame.assume_init() };
+        sample.send()?;
+    }
+
+    tracing::debug!("Shutting down IPC");
+
+    Ok(())
 }
+
+fn clear_ipc_globals() {}
 
 /// Renders a frame by copying the current display data into the given buffer, initializing it.
 fn publish_frame(frame: &mut MaybeUninit<DisplayFrame>) {

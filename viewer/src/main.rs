@@ -33,6 +33,10 @@ const WINDOW_SIZE: LogicalSize<f64> = LogicalSize::new(480.0, 272.0);
 
 type DisplayCtx = Context<OwnedDisplayHandle>;
 
+enum ViewerEvent {
+    Shutdown,
+}
+
 fn main() -> Result<()> {
     ViewerApp::start()
 }
@@ -51,7 +55,12 @@ impl ViewerApp {
         let subscriber = ipc.display_frames()?.subscriber_builder().create()?;
         let publisher = ipc.display_input()?.publisher_builder().create()?;
 
-        let event_loop = EventLoop::with_user_event().build().unwrap();
+        let event_loop = EventLoop::<ViewerEvent>::with_user_event().build().unwrap();
+        let proxy = event_loop.create_proxy();
+        ctrlc::set_handler(move || {
+            let _ = proxy.send_event(ViewerEvent::Shutdown);
+        })
+        .context("Failed to register Ctrl-C handler")?;
 
         let display = event_loop.owned_display_handle();
         let mut simulator = ViewerApp::new(display, subscriber, publisher)?;
@@ -91,7 +100,7 @@ impl ViewerApp {
     }
 }
 
-impl ApplicationHandler<()> for ViewerApp {
+impl ApplicationHandler<ViewerEvent> for ViewerApp {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.sim_display.is_none() {
             match SimDisplayWindow::open(
@@ -103,6 +112,12 @@ impl ApplicationHandler<()> for ViewerApp {
                 Ok(sim_display) => self.sim_display = Some(sim_display),
                 Err(error) => error!(%error, "Failed to open VEX V5 Display window"),
             }
+        }
+    }
+
+    fn user_event(&mut self, event_loop: &ActiveEventLoop, event: ViewerEvent) {
+        if matches!(event, ViewerEvent::Shutdown) {
+            event_loop.exit();
         }
     }
 

@@ -5,7 +5,7 @@
 use std::{
     ptr,
     sync::{
-        Arc, LazyLock, OnceLock,
+        Arc, LazyLock,
         atomic::{AtomicU32, Ordering},
     },
     thread,
@@ -27,7 +27,8 @@ use crate::sdk::{motor::MotorState, system::vexSystemTimeGet};
 
 pub static TIMESTAMP_EPOCH: LazyLock<SystemTime> = LazyLock::new(SystemTime::now);
 pub static DEVICES: Mutex<Devices> = Mutex::new(Devices::new());
-pub static DEVICES_STREAM: OnceLock<DevicesStream> = OnceLock::new();
+pub static DEVICES_STREAM: Mutex<Option<DevicesStream>> =
+    Mutex::new(None);
 pub const NUM_DEVICES_HANDLES: usize = 23;
 
 /// Access to device readings and device I/O.
@@ -255,6 +256,7 @@ impl HasDeviceCommand for () {
 }
 
 /// Updates the global device registry with the latest readings.
+#[derive(Debug)]
 pub struct DevicesStream {
     readings: Subscriber<DeviceReadings>,
 }

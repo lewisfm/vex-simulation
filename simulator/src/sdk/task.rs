@@ -78,7 +78,7 @@ static TASKS: Mutex<[Task; 1]> = Mutex::new([
 ]);
 
 pub fn update_device_readings() {
-    if let Some(stream) = DEVICES_STREAM.get() {
+    if let Some(stream) = &*DEVICES_STREAM.lock() {
         let result = stream.update();
         if let Err(error) = result {
             tracing::error!(%error, "Failed to update devices");
@@ -88,8 +88,6 @@ pub fn update_device_readings() {
 
 #[unsafe(no_mangle)]
 pub extern "system" fn vexTasksRun() {
-
-
     let mut tasks = TASKS.lock();
     let now = Instant::now();
 

@@ -1,9 +1,13 @@
 use std::{mem::MaybeUninit, thread::sleep, time::Duration};
+use tracing_subscriber::EnvFilter;
 use vex_sdk::*;
 use vexide::prelude::Peripherals;
 
 #[vexide::main]
 async fn main(_p: Peripherals) {
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
     vex_sdk_desktop::init().unwrap();
 
     unsafe {

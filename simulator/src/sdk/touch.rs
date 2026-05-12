@@ -1,7 +1,8 @@
 //! Brain Screen Touchscreen
 
-use std::sync::OnceLock;
+use std::sync::LazyLock;
 
+use parking_lot::Mutex;
 use roboscope_ipc::{Subscriber, display::DisplayInput};
 pub use vex_sdk::{V5_TouchEvent, V5_TouchStatus};
 
@@ -30,11 +31,12 @@ pub unsafe extern "system" fn vexTouchDataGet(status: *mut V5_TouchStatus) {
     }
 }
 
-pub(crate) static TOUCH_SUBSCRIBER: OnceLock<Subscriber<DisplayInput>> = OnceLock::new();
+pub(crate) static TOUCH_SUBSCRIBER: Mutex<Option<Subscriber<DisplayInput>>> =
+    Mutex::new(None);
 pub(crate) fn update_touch_status() {
     let mut display = DISPLAY.lock();
 
-    if let Some(subscriber) = TOUCH_SUBSCRIBER.get() {
+    if let Some(subscriber) = &*TOUCH_SUBSCRIBER.lock() {
         // It would make more sense to directly update `display.touch` with this data, but some
         // user libraries act as though "1 call to vexTouchDataGet" = "1 touch event". I'm not sure
         // what's really the correct approach, but this approach of simulating that seems to make
