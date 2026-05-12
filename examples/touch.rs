@@ -38,8 +38,6 @@ async fn entry(_p: Peripherals) {
                 10,
             );
 
-            vexBackgroundProcessing();
-
             vexDisplayRender(true, false);
             vexTasksRun();
 

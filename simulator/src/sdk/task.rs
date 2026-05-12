@@ -73,28 +73,6 @@ static TASKS: Mutex<[Task; 1]> = Mutex::new([
     Task::new(update_device_readings, Duration::from_millis(10)),
 ]);
 
-pub fn update_touch_status() {
-    let mut display = DISPLAY.lock();
-
-    if display.mouse_down {
-        if display.touch.lastEvent == V5_TouchEvent::kTouchEventRelease {
-            display.touch.lastEvent = V5_TouchEvent::kTouchEventPress;
-            display.touch.pressCount += 1;
-        } else {
-            display.touch.lastEvent = V5_TouchEvent::kTouchEventPressAuto;
-        }
-
-        display.touch.lastXpos = display.mouse_coords.x as i16;
-        display.touch.lastYpos = (display.mouse_coords.y - HEADER_HEIGHT) as i16;
-    } else {
-        if display.touch.lastEvent != V5_TouchEvent::kTouchEventRelease {
-            display.touch.releaseCount += 1;
-        }
-
-        display.touch.lastEvent = V5_TouchEvent::kTouchEventRelease;
-    }
-}
-
 pub fn update_device_readings() {
     if let Some(stream) = DEVICES_STREAM.get() {
         let result = stream.update();

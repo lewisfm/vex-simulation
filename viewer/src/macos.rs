@@ -9,7 +9,7 @@ use objc2_core_graphics::{
     CGDataProviderReleaseDataCallback, CGImage, CGImageAlphaInfo, CGImageByteOrderInfo,
 };
 use objc2_foundation::NSSize;
-use roboscope_ipc::{DISPLAY_HEIGHT, DISPLAY_WIDTH};
+use roboscope_ipc::display::{DISPLAY_HEIGHT, DISPLAY_WIDTH};
 use tracing::debug;
 use winit::{
     raw_window_handle::{HasWindowHandle, RawWindowHandle},

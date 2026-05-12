@@ -8,41 +8,30 @@ use std::sync::LazyLock;
 use std::time::Duration;
 
 use derive_more::{From, TryInto};
-use iceoryx2::{port::publisher::Publisher, prelude::*};
+use iceoryx2::prelude::*;
 
-use crate::error::{RoboscopeIpcError, SimResult};
+use crate::{
+    display::{DISPLAY_UPDATE_PERIOD, DisplayFrame, DisplayInput},
+    error::{RoboscopeIpcError, SimResult},
+};
 
 // Aliases for the kind of IPC types we use.
 #[cfg(feature = "thread-safe")]
 use ipc_threadsafe as ipc;
 pub type PubSubFactory<T> =
     iceoryx2::service::port_factory::publish_subscribe::PortFactory<ipc::Service, T, ()>;
-pub type Subscriber<T> =
-    iceoryx2::port::subscriber::Subscriber<ipc::Service, T, ()>;
-pub type Sample<T> =
-    iceoryx2::sample::Sample<ipc::Service, T, ()>;
+pub type Publisher<T> = iceoryx2::port::publisher::Publisher<ipc::Service, T, ()>;
+pub type Subscriber<T> = iceoryx2::port::subscriber::Subscriber<ipc::Service, T, ()>;
+pub type Sample<T> = iceoryx2::sample::Sample<ipc::Service, T, ()>;
 pub use iceoryx2::config::Config;
 
-pub mod snapshot;
 pub mod cmd;
+pub mod display;
 pub mod error;
+pub mod snapshot;
 
 pub const PHYSICS_UPDATE_PERIOD: Duration = Duration::from_millis(10);
 pub const SMART_DEVICES_COUNT: usize = 21;
-
-pub static DISPLAY_UPDATE_PERIOD: LazyLock<Duration> =
-    LazyLock::new(|| Duration::from_secs_f64(1.0 / 60.0));
-pub const DISPLAY_WIDTH: u32 = 480;
-pub const DISPLAY_HEIGHT: u32 = 272;
-pub const DISPLAY_BUF_SIZE: usize = DISPLAY_WIDTH as usize * DISPLAY_HEIGHT as usize;
-
-
-#[derive(derive_more::Debug, ZeroCopySend)]
-#[debug("DisplayFrame")]
-#[repr(C)]
-pub struct DisplayFrame {
-    pub buffer: [u32; DISPLAY_BUF_SIZE],
-}
 
 #[derive(Debug)]
 pub struct SimServices {
@@ -63,10 +52,7 @@ impl SimServices {
         })
     }
 
-    fn pub_sub<T: Debug + ZeroCopySend>(
-        &self,
-        name: &str,
-    ) -> SimResult<PubSubFactory<T>> {
+    fn pub_sub<T: Debug + ZeroCopySend>(&self, name: &str) -> SimResult<PubSubFactory<T>> {
         let name = ServiceName::new(name).unwrap();
         let service = self
             .node
@@ -82,6 +68,10 @@ impl SimServices {
         self.pub_sub("vexide/roboscope/display_frames")
     }
 
+    pub fn display_input(&self) -> SimResult<PubSubFactory<DisplayInput>> {
+        self.pub_sub("vexide/roboscope/display_input")
+    }
+
     pub fn device_cmds(&self) -> SimResult<PubSubFactory<cmd::RobotOutputs>> {
         self.pub_sub("vexide/roboscope/device_cmds")
     }
@@ -95,9 +85,7 @@ impl SimServices {
         mut physics_sim: impl FnMut(Option<&cmd::RobotOutputs>) -> snapshot::DeviceReadings,
     ) -> SimResult<()> {
         let robot_subscriber = self.device_cmds()?.subscriber_builder().create()?;
-        let captures = self.device_readings()?
-            .publisher_builder()
-            .create()?;
+        let captures = self.device_readings()?.publisher_builder().create()?;
 
         while self.node.wait(PHYSICS_UPDATE_PERIOD).is_ok() {
             let robot_outputs = robot_subscriber.receive()?;

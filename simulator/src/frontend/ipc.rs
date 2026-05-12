@@ -1,10 +1,12 @@
 use std::{mem::MaybeUninit, sync::Arc, thread, time::Duration};
 
-use roboscope_ipc::{Config, DisplayFrame, SimServices};
+use roboscope_ipc::{Config, SimServices, display::DisplayFrame};
 use tracing::trace;
 
 use crate::{
-    device::{DEVICES_STREAM, DevicesStream}, display::{DISPLAY, FRAME_FINISHED}
+    device::{DEVICES_STREAM, DevicesStream},
+    display::{DISPLAY, FRAME_FINISHED},
+    sdk::touch::TOUCH_SUBSCRIBER,
 };
 
 pub fn start(name: &str, entrypoint: impl FnOnce() + Send + 'static) -> anyhow::Result<()> {
@@ -29,6 +31,15 @@ pub fn start(name: &str, entrypoint: impl FnOnce() + Send + 'static) -> anyhow::
 }
 
 fn start_renderer(ipc: Arc<SimServices>) {
+    TOUCH_SUBSCRIBER.set(
+        ipc.display_input()
+            .unwrap()
+            .subscriber_builder()
+            .create()
+            .unwrap(),
+    )
+    .expect("Touch subscriber should be unset");
+
     thread::Builder::new()
         .name("Sim Display Render".into())
         .spawn(move || {

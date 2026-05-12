@@ -76,4 +76,3 @@ cargo run --example display -F vex-sdk-desktop/windowed
 ## Troubleshooting
 
 If you get a stack overflow, make sure that your display drawing code is not allocating any large arrays on the stack. The VEX V5 has a very large stack compared to most operating systems.
-

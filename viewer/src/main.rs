@@ -17,7 +17,8 @@ use fast_image_resize::{
     pixels::U8x4,
 };
 use roboscope_ipc::{
-    Config, DISPLAY_HEIGHT, DISPLAY_WIDTH, DisplayFrame, PubSubFactory, Sample, SimServices, Subscriber
+    Config, PubSubFactory, Publisher, Sample, SimServices, Subscriber,
+    display::{DISPLAY_HEIGHT, DISPLAY_WIDTH, DisplayFrame, DisplayInput, DisplayInputKind},
 };
 use softbuffer::{Context, Surface};
 use tracing::{debug, error, trace};
@@ -45,23 +46,29 @@ pub struct ViewerApp {
     context: DisplayCtx,
     last_frame_time: Option<Instant>,
     subscriber: Option<Subscriber<DisplayFrame>>,
+    publisher: Option<Publisher<DisplayInput>>,
 }
 
 impl ViewerApp {
     pub fn start() -> Result<()> {
         let ipc = SimServices::join(Some("viewer"), &Config::default())?;
         let subscriber = ipc.display_frames()?.subscriber_builder().create()?;
+        let publisher = ipc.display_input()?.publisher_builder().create()?;
 
         let event_loop = EventLoop::with_user_event().build().unwrap();
 
         let display = event_loop.owned_display_handle();
-        let mut simulator = ViewerApp::new(display, subscriber)?;
+        let mut simulator = ViewerApp::new(display, subscriber, publisher)?;
         event_loop.run_app(&mut simulator)?;
 
         Ok(())
     }
 
-    fn new(display: OwnedDisplayHandle, subscriber: Subscriber<DisplayFrame>) -> Result<Self> {
+    fn new(
+        display: OwnedDisplayHandle,
+        subscriber: Subscriber<DisplayFrame>,
+        publisher: Publisher<DisplayInput>,
+    ) -> Result<Self> {
         let context = DisplayCtx::new(display)
             .map_err(|e| anyhow!(e.to_string()))
             .context("Failed to create display rendering context")?;
@@ -71,6 +78,7 @@ impl ViewerApp {
             context,
             last_frame_time: None,
             subscriber: Some(subscriber),
+            publisher: Some(publisher),
         })
     }
 
@@ -90,8 +98,12 @@ impl ViewerApp {
 impl ApplicationHandler<()> for ViewerApp {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.sim_display.is_none() {
-            match SimDisplayWindow::open(event_loop, &self.context, self.subscriber.take().unwrap())
-            {
+            match SimDisplayWindow::open(
+                event_loop,
+                &self.context,
+                self.subscriber.take().unwrap(),
+                self.publisher.take().unwrap(),
+            ) {
                 Ok(sim_display) => self.sim_display = Some(sim_display),
                 Err(error) => error!(%error, "Failed to open VEX V5 Display window"),
             }
@@ -142,9 +154,13 @@ pub struct SimDisplayWindow {
     window: Rc<Window>,
     surface: Surface<OwnedDisplayHandle, Rc<Window>>,
     subscriber: Subscriber<DisplayFrame>,
+    publisher: Publisher<DisplayInput>,
     last_frame: Option<Sample<DisplayFrame>>,
 
     scale_factor: f64,
+    num_clicks: u32,
+    is_mouse_down: bool,
+    mouse_coords: [i16; 2],
 
     // A frame has been explicitly requested by the app; the next redraw should autorender the
     // canvas, update the program header, notify vexDisplayRender callers, etc. instead of just
@@ -157,6 +173,7 @@ impl SimDisplayWindow {
         event_loop: &ActiveEventLoop,
         context: &DisplayCtx,
         subscriber: Subscriber<DisplayFrame>,
+        publisher: Publisher<DisplayInput>,
     ) -> Result<Self> {
         debug!("Opening V5 display window");
 
@@ -186,8 +203,12 @@ impl SimDisplayWindow {
             surface,
             window,
             subscriber,
+            publisher,
             last_frame: None,
             scale_factor: 1.0,
+            is_mouse_down: false,
+            mouse_coords: [0, 0],
+            num_clicks: 0,
             has_scheduled_frame: true,
         })
     }
@@ -200,6 +221,48 @@ impl SimDisplayWindow {
             }
             WindowEvent::RedrawRequested => {
                 self.redraw().unwrap();
+            }
+            WindowEvent::MouseInput { state, button, .. } => {
+                if button != MouseButton::Left {
+                    return;
+                }
+
+                let release_count = self.num_clicks;
+                self.is_mouse_down = state.is_pressed();
+                if self.is_mouse_down {
+                    self.num_clicks = self.num_clicks.wrapping_add(1);
+                }
+
+                _ = self.publisher.send_copy(DisplayInput {
+                    kind: if self.is_mouse_down {
+                        DisplayInputKind::Press
+                    } else {
+                        DisplayInputKind::Release
+                    },
+                    press_count: self.num_clicks,
+                    release_count,
+                    x: self.mouse_coords[0],
+                    y: self.mouse_coords[1],
+                });
+            }
+            WindowEvent::CursorMoved { position, .. } => {
+                let x = position.x * self.scale_factor;
+                let y = position.y * self.scale_factor;
+                self.mouse_coords = [x as i16, y as i16];
+
+                if self.is_mouse_down {
+                    _ = self.publisher.send_copy(DisplayInput {
+                        kind: if self.is_mouse_down {
+                            DisplayInputKind::Hold
+                        } else {
+                            DisplayInputKind::Release
+                        },
+                        press_count: self.num_clicks,
+                        release_count: self.num_clicks - 1,
+                        x: self.mouse_coords[0],
+                        y: self.mouse_coords[1],
+                    });
+                }
             }
             WindowEvent::Resized(_) => {
                 // Tell the window manager that we have a certain aspect ratio set if possible.
