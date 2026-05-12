@@ -4,7 +4,7 @@
 
 use derive_more::{From, TryInto};
 use iceoryx2::prelude::ZeroCopySend;
-use vex_sdk::V5MotorGearset;
+use vex_sdk::{V5MotorBrakeMode, V5MotorControlMode, V5MotorGearset};
 
 use crate::SMART_DEVICES_COUNT;
 
@@ -26,17 +26,46 @@ pub enum DeviceCommand {
 #[repr(C)]
 pub struct MotorCommand {
     /// Requested mode of motor control
-    mode: MotorControlMode,
+    pub mode: MotorControlMode,
     /// Presumed gearset of motor
-    gearset: MotorGearset,
+    pub gearset: MotorGearset,
     /// Target position in ticks
-    target_position: f64,
-    /// Target velocity in RPM
-    target_velocity: i32,
+    pub target_position: i32,
+    /// Target velocity in ticks per second
+    pub target_velocity: i32,
     /// PWM control % with the range `[-100, 100]`
-    pwm: i32,
+    pub pwm: i32,
     /// Requested current limit in milliamperes.
-    current_limit: i32,
+    pub current_limit: i32,
+    /// Brake mode for when targeting zero velocity.
+    pub brake_mode: MotorBrakeMode,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, ZeroCopySend, Default, From)]
+#[repr(C)]
+pub enum MotorBrakeMode {
+    #[default]
+    Coast,
+    Brake,
+    Hold,
+}
+
+impl From<MotorBrakeMode> for V5MotorBrakeMode {
+    fn from(value: MotorBrakeMode) -> Self {
+        V5MotorBrakeMode(value as u8)
+    }
+}
+
+impl TryFrom<V5MotorBrakeMode> for MotorBrakeMode {
+    type Error = ();
+    fn try_from(value: V5MotorBrakeMode) -> Result<Self, Self::Error> {
+        Ok(match value {
+            V5MotorBrakeMode::kV5MotorBrakeModeCoast => Self::Coast,
+            V5MotorBrakeMode::kV5MotorBrakeModeBrake => Self::Brake,
+            V5MotorBrakeMode::kV5MotorBrakeModeHold => Self::Hold,
+            _ => return Err(()),
+        })
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, ZeroCopySend, Default, From)]
@@ -50,13 +79,41 @@ pub enum MotorControlMode {
     /// The motor will use position control to hold its current rotation.
     Hold,
     /// The motor will use position control to rotate to the target position.
-    Profile,
+    Position = 4,
     /// The motor will use velocity control to rotate at the target velocity.
     Velocity,
     /// The motor will use pulse-width modulation to rotate using a percent of the max voltage.
     Pwm,
 }
 
+impl TryFrom<V5MotorControlMode> for MotorControlMode {
+    type Error = ();
+
+    fn try_from(value: V5MotorControlMode) -> Result<Self, Self::Error> {
+        Ok(match value {
+            V5MotorControlMode::kMotorControlModeOFF => Self::Off,
+            V5MotorControlMode::kMotorControlModeBRAKE => Self::Brake,
+            V5MotorControlMode::kMotorControlModeHOLD => Self::Hold,
+            V5MotorControlMode::kMotorControlModePROFILE => Self::Position,
+            V5MotorControlMode::kMotorControlModeVELOCITY => Self::Velocity,
+            _ => return Err(()),
+        })
+    }
+}
+
+impl TryFrom<MotorControlMode> for V5MotorControlMode {
+    type Error = ();
+
+    fn try_from(value: MotorControlMode) -> Result<Self, Self::Error> {
+        if value == MotorControlMode::Pwm {
+            return Err(());
+        }
+
+        Ok(V5MotorControlMode(value as u8))
+    }
+}
+
+/// A known gear ratio cartridge.
 #[derive(Debug, Copy, Clone, PartialEq, ZeroCopySend, Default, From)]
 #[repr(C)]
 pub enum MotorGearset {
@@ -70,6 +127,9 @@ pub enum MotorGearset {
 }
 
 impl MotorGearset {
+    /// Try to convert a VEX SDK gearset to a known gearset.
+    ///
+    /// Returns `None` if the gearset kind is unknown.
     pub const fn new(gearset: V5MotorGearset) -> Option<Self> {
         Some(match gearset {
             V5MotorGearset::kMotorGearSet_06 => Self::Ratio06To1,
@@ -79,6 +139,12 @@ impl MotorGearset {
         })
     }
 
+    #[must_use]
+    pub const fn to_v5(self) -> V5MotorGearset {
+        V5MotorGearset(self as u8)
+    }
+
+    /// Get the conversion ratio for rotation through this gearset.
     #[must_use]
     pub const fn multiplier(self) -> f64 {
         match self {

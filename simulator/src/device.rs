@@ -12,17 +12,16 @@ use std::{
     time::{Duration, Instant, SystemTime},
 };
 
-use derive_more::{AsRef, From, TryInto};
+use derive_more::{AsRef, From, TryInto, TryIntoError};
 use parking_lot::{Mutex, MutexGuard};
 use roboscope_ipc::{
-    PHYSICS_UPDATE_PERIOD, SMART_DEVICES_COUNT, Sample, SimServices, Subscriber,
-    snapshot::{DeviceReadings, DeviceSnapshot, DistanceSnapshot, GenericSnapshot, MotorSnapshot},
+    PHYSICS_UPDATE_PERIOD, SMART_DEVICES_COUNT, Sample, SimServices, Subscriber, cmd::DeviceCommand, snapshot::{DeviceReadings, DeviceSnapshot, DistanceSnapshot, GenericSnapshot, MotorSnapshot}
 };
 use static_assertions::const_assert_ne;
 use tracing::{debug, trace};
 use vex_sdk::{V5_Device, V5_DeviceT, V5_DeviceType};
 
-use crate::sdk::{MotorState, vexSystemTimeGet};
+use crate::sdk::{motor::MotorState, system::vexSystemTimeGet};
 
 pub static TIMESTAMP_EPOCH: LazyLock<SystemTime> = LazyLock::new(SystemTime::now);
 pub static DEVICES: Mutex<Devices> = Mutex::new(Devices::new());
@@ -85,9 +84,10 @@ impl Devices {
     /// # Panics
     ///
     /// Panics if the device handle is invalid.
-    pub fn resolve<T>(&mut self, device: impl DeviceResolvable) -> Option<(&T, T::State<'_>)>
+    pub fn resolve<T>(&mut self, device: impl DeviceResolvable) -> Option<(&T, &mut T::State)>
     where
         T: TrackedDevice,
+        for<'a> &'a mut T::State: TryFrom<&'a mut V5DeviceState>,
         for<'a> &'a T: TryFrom<&'a DeviceSnapshot>,
     {
         let readings = self.readings.as_ref()?;
@@ -105,7 +105,9 @@ impl Devices {
 
     /// Try to resolve the given device handle to the state for a certain kind of device.
     ///
-    /// Returns `None` if the device is the wrong type.
+    /// Returns `None` if the device is the wrong type. Compared to [`Self::resolve`], this method
+    /// will succeed even if the device has since been unplugged: state for a specified kind of
+    /// device isn't cleared until another kind of device is connected.
     ///
     /// # Panics
     ///
@@ -169,7 +171,7 @@ impl V5Device {
         Self {
             _placeholder: 0,
             last_known_type: V5_DeviceType::kDeviceTypeNoSensor,
-            state: V5DeviceState::None,
+            state: V5DeviceState::None(()),
         }
     }
 
@@ -183,17 +185,22 @@ impl V5Device {
         self.last_known_type = kind;
         self.state = match kind {
             V5_DeviceType::kDeviceTypeMotorSensor => MotorState::default().into(),
-            _ => V5DeviceState::None,
+            _ => V5DeviceState::None(()),
         };
     }
 }
 
-#[derive(Debug, Default, From, TryInto)]
+#[derive(Debug, From, TryInto)]
 #[try_into(owned, ref, ref_mut)]
 pub enum V5DeviceState {
-    #[default]
-    None,
+    None(()),
     Motor(MotorState),
+}
+
+impl Default for V5DeviceState {
+    fn default() -> Self {
+        Self::None(())
+    }
 }
 
 /// An association between a snapshot type and associated device state.
@@ -203,23 +210,46 @@ pub enum V5DeviceState {
 pub trait TrackedDevice {
     // Tracked devices must have an associated State type which can be obtained via references
     // to `V5DeviceState`. `()` is a valid kind of state, too.
-    type State<'a>: TryFrom<&'a mut V5DeviceState>;
+    type State: HasDeviceCommand;
+
+    // fn command(state: Self::State) -> DeviceCommand;
 }
 
 impl TrackedDevice for DeviceSnapshot {
-    type State<'a> = &'a mut V5DeviceState;
+    type State = V5DeviceState;
 }
 
 impl TrackedDevice for GenericSnapshot {
-    type State<'a> = ();
+    type State = ();
 }
 
 impl TrackedDevice for DistanceSnapshot {
-    type State<'a> = ();
+    type State = ();
 }
 
 impl TrackedDevice for MotorSnapshot {
-    type State<'a> = &'a mut MotorState;
+    type State = MotorState;
+}
+
+/// A type which can control a smart device.
+pub trait HasDeviceCommand {
+    /// Get the command that will be sent to the device.
+    fn command(&self) -> DeviceCommand;
+}
+
+impl HasDeviceCommand for V5DeviceState {
+    fn command(&self) -> DeviceCommand {
+        match self {
+            Self::None(v) => v.command(),
+            Self::Motor(motor_state) => motor_state.command(),
+        }
+    }
+}
+
+impl HasDeviceCommand for () {
+    fn command(&self) -> DeviceCommand {
+        DeviceCommand::Empty
+    }
 }
 
 /// Updates the global device registry with the latest readings.

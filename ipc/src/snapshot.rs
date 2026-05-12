@@ -191,4 +191,6 @@ pub struct MotorSnapshot {
     pub torque: f64,
     /// The efficiency of the motor from 0 to 100.
     pub efficiency: f64,
+    /// The voltage which is currently being applied to the motor in millivolts.
+    pub applied_voltage: i32,
 }

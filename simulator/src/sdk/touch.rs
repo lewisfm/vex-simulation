@@ -2,7 +2,7 @@
 
 pub use vex_sdk::{V5_TouchEvent, V5_TouchStatus};
 
-use crate::{display::DISPLAY, sdk::update_touch_status};
+use crate::{display::DISPLAY, sdk::task::update_touch_status};
 
 #[unsafe(no_mangle)]
 pub extern "system" fn vexTouchUserCallbackSet(callback: extern "C" fn(V5_TouchEvent, i32, i32)) {

@@ -8,6 +8,7 @@ pub struct Config {
     fullscreen: bool,
     theme: DisplayTheme,
     battery_capacity: f64,
+    report_unplugged: bool,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
