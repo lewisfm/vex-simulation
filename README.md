@@ -6,7 +6,7 @@ RoboScope is an enhanced desktop SDK for vexide with features like display simul
 
 ## Getting started
 
-Add vex-sdk-desktop as a dependency in you Cargo.toml. Make sure you are manually managing what
+Add vex-sdk-desktop as a dependency in your Cargo.toml. Make sure you are manually managing what
 SDK your project uses instead of using vexide's `default-sdk` feature, like this:
 
 ```toml
