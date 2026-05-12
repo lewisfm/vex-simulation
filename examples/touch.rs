@@ -16,7 +16,7 @@ async fn main(_p: Peripherals) {
             vexTouchDataGet(touch_status.as_mut_ptr());
             let touch_status = touch_status.assume_init();
 
-            vexDisplayRectClear(0, 0, 512, 512);
+            vexDisplayErase();
             vexDisplayForegroundColor(match touch_status.lastEvent {
                 V5_TouchEvent::kTouchEventPress => 0xFF_FF_FF,
                 V5_TouchEvent::kTouchEventPressAuto => 0x00_FF_00,

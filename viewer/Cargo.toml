@@ -6,8 +6,9 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.102"
 bytemuck = { version = "1.25.0", features = ["must_cast"] }
-ctrlc = "3.5.1"
+ctrlc = { version = "3.5.2" }
 fast_image_resize = { version = "6.0.0", features = ["bytemuck"] }
+iceoryx2 = "0.8.1"
 image = { version = "0.25.9", default-features = false, features = ["png"] }
 roboscope-ipc = { version = "0.1.0", path = "../ipc" }
 softbuffer = "0.4.8"

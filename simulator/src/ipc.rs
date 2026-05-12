@@ -1,4 +1,4 @@
-use std::{mem::MaybeUninit, sync::Arc, thread, time::Duration};
+use std::{mem::MaybeUninit, sync::Arc, thread::{self, sleep}, time::Duration};
 
 use roboscope_ipc::{
     Config, SimServices,
@@ -39,6 +39,7 @@ pub fn start(name: &str) -> anyhow::Result<()> {
             }
 
             // Either the user has exited or IPC has failed, so shut down the other IPC handles.
+            // TODO: Does this crash subscribers?
             *DEVICES_STREAM.lock() = None;
             *TOUCH_SUBSCRIBER.lock() = None;
 
@@ -68,8 +69,6 @@ fn ipc_thread(ipc: Arc<SimServices>) -> SimResult<()> {
     Ok(())
 }
 
-fn clear_ipc_globals() {}
-
 /// Renders a frame by copying the current display data into the given buffer, initializing it.
 fn publish_frame(frame: &mut MaybeUninit<DisplayFrame>) {
     let mut disp = DISPLAY.lock();
@@ -78,6 +77,7 @@ fn publish_frame(frame: &mut MaybeUninit<DisplayFrame>) {
     trace!("Publishing a frame");
 
     let frame_ptr = frame.as_mut_ptr();
+    // Direct buffer-to-buffer copy prevents a stack overflow here.
     unsafe {
         let source = &raw const disp.buffer;
         let destination = &raw mut (*frame_ptr).buffer;

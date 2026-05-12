@@ -1,5 +1,4 @@
 use std::{
-    env,
     fmt::{self, Formatter},
     io::Cursor,
     mem,
@@ -17,10 +16,12 @@ use line_drawing::{Bresenham, BresenhamCircle};
 use parking_lot::Mutex;
 use tracing::trace;
 
-use crate::canvas::font::{FONTS, PreRenderedFont};
+use crate::{
+    canvas::font::{FONTS, PreRenderedFont},
+    config::{DebugFlag, DisplayTheme, config},
+};
 
 mod font;
-pub mod img;
 
 pub const WIDTH: u32 = 480;
 pub const HEIGHT: u32 = 272;
@@ -30,12 +31,11 @@ pub const BUFSZ: usize = WIDTH as usize * HEIGHT as usize;
 const TEXT_WIDTH: u32 = 512;
 const TEXT_BUFSZ: usize = TEXT_WIDTH as usize * TEXT_WIDTH as usize;
 
-pub const DEFAULT_BG_COLOR: u32 = 0x00_00_00;
-pub const DEFAULT_FG_COLOR: u32 = 0xFF_FF_FF;
-pub const HEADER_COLOR: u32 = 0x00_99_CC;
+pub const DEFAULT_BLACK: u32 = 0x00_00_00;
+pub const DEFAULT_WHITE: u32 = 0xFF_FF_FF;
 
 /// The canvas instance used by user code.
-pub static CANVAS: LazyLock<Mutex<Canvas>> = LazyLock::new(|| Mutex::new(Canvas::new()));
+pub static CANVAS: LazyLock<Mutex<Canvas>> = LazyLock::new(Mutex::default);
 
 #[derive(Debug, Clone)]
 pub struct CanvasState {
@@ -91,25 +91,25 @@ pub struct Canvas {
     /// Scratch buffer for planning text writes before compositing them onto the main buffer. Holds
     /// opacity values for the text.
     text_buffer: Box<[u8; TEXT_BUFSZ]>,
-    debug_text_buffer: bool,
+    theme: DisplayTheme,
     pub state: CanvasState,
     pub saved_state: CanvasState,
 }
 
 impl Canvas {
-    pub fn new() -> Self {
-        let state = CanvasState {
-            fg_color: DEFAULT_FG_COLOR,
-            bg_color: DEFAULT_BG_COLOR,
+    pub fn new(theme: DisplayTheme) -> Self {
+        let mut state = CanvasState {
+            fg_color: DEFAULT_WHITE,
+            bg_color: DEFAULT_BLACK,
             clip_region: Rect::FULL_CLIP,
             pen_size: 1,
             font: FONTS.get("monospace").unwrap(),
             font_scale: (1, 3),
         };
 
-        let debug_env = env::var("SIM_DEBUG").unwrap_or_default();
-
-        let debug_toggles: Vec<&str> = debug_env.split(',').collect();
+        if theme == DisplayTheme::Light {
+            mem::swap(&mut state.fg_color, &mut state.bg_color);
+        }
 
         Self {
             // Allocate directly on the heap to prevent a stack overflow.
@@ -117,8 +117,12 @@ impl Canvas {
             text_buffer: vec![0u8; TEXT_BUFSZ].into_boxed_slice().try_into().unwrap(),
             saved_state: state.clone(),
             state,
-            debug_text_buffer: debug_toggles.contains(&"text_buffer"),
+            theme,
         }
+    }
+
+    pub const fn theme(&self) -> DisplayTheme {
+        self.theme
     }
 
     pub fn save(&mut self) {
@@ -129,6 +133,7 @@ impl Canvas {
         self.state = self.saved_state.clone();
     }
 
+    /// Set the given pixel to the foreground color.
     pub fn set_pixel(&mut self, point: Point) {
         if !point.is_inside(self.state.clip_region) {
             return;
@@ -138,11 +143,13 @@ impl Canvas {
         self.write_pixel(point, self.state.fg_color);
     }
 
+    /// Set the given pixel to the given color, without performing bounds/clip region checks.
     fn write_pixel(&mut self, point: Point, color: u32) {
         let idx = point.y * WIDTH as i32 + point.x;
         self.buffer[idx as usize] = color;
     }
 
+    /// Draw a horizontal line using the foreground color.
     pub fn draw_horizontal_line(&mut self, x_range: RangeInclusive<i32>, y: i32) {
         trace!(?x_range, y, "horizontal line");
 
@@ -164,6 +171,7 @@ impl Canvas {
         }
     }
 
+    /// Draw a vertical line using the foreground color.
     pub fn draw_vertical_line(&mut self, x: i32, y_range: RangeInclusive<i32>) {
         trace!(x, ?y_range, "vertical line");
 
@@ -185,6 +193,7 @@ impl Canvas {
         }
     }
 
+    /// Draw a line using the foreground color with Bresenham's line algorithm.
     pub fn draw_line(&mut self, start: Point, end: Point) {
         trace!(?start, ?end, "line");
 
@@ -193,6 +202,7 @@ impl Canvas {
         }
     }
 
+    /// Fill in the given rectangle with the foreground color.
     pub fn fill_rect(&mut self, mut bounds: Rect) {
         trace!(color = %Hex(self.state.fg_color), ?bounds, "fill rect");
 
@@ -203,6 +213,7 @@ impl Canvas {
         }
     }
 
+    /// Draw the borders of the given rectangle with the foreground color.
     pub fn draw_rect(&mut self, bounds: Rect) {
         trace!(color = %Hex(self.state.fg_color), ?bounds, "trace rect");
 
@@ -218,6 +229,7 @@ impl Canvas {
         }
     }
 
+    /// Fill in the given circle with the foreground color using Bresenham's Circle algorithm.
     pub fn fill_circle(&mut self, center: Point, radius: u32) {
         trace!(color = %Hex(self.state.fg_color), ?center, radius, "fill circle");
 
@@ -255,6 +267,8 @@ impl Canvas {
         }
     }
 
+    /// Draw the borders of the given circle with the foreground color using Bresenham's Circle
+    /// algorithm.
     pub fn draw_circle(&mut self, center: Point, radius: u32) {
         trace!(color = %Hex(self.state.fg_color), ?center, radius, "trace circle");
 
@@ -273,6 +287,7 @@ impl Canvas {
         }
     }
 
+    /// Copy the source buffer onto the display buffer.
     pub unsafe fn copy_rect(&mut self, mut bounds: Rect, source: *const u32, stride: usize) {
         trace!(?bounds, ?source, ?stride, "copy rect");
         let origin = bounds.0;
@@ -293,6 +308,9 @@ impl Canvas {
         }
     }
 
+    /// Draw the given string on the display in the foreground color.
+    ///
+    /// If `opaque` is specified, the text will be highlighted with the background color.
     pub fn draw_string(&mut self, origin: Point, string: &str, opaque: bool) {
         let font = self.state.font.clone();
 
@@ -357,7 +375,7 @@ impl Canvas {
             x_cursor += glyph.advance(numerator, denominator);
         }
 
-        if self.debug_text_buffer {
+        if config().debug.contains(&DebugFlag::TextBuffer) {
             self.save_text_buffer_png("text_mask.png").unwrap();
         }
 
@@ -394,11 +412,13 @@ impl Canvas {
         }
     }
 
+    /// Get the height of the given string in pixels.
     pub fn measure_string_height(&mut self, _string: &str) -> i32 {
         let (numerator, denominator) = self.state.font_scale;
         self.state.font.height(numerator, denominator) as i32
     }
 
+    /// Get the width of the given string in pixels.
     pub fn measure_string_width(&mut self, string: &str) -> i32 {
         let (numerator, denominator) = self.state.font_scale;
         let font = self.state.font.clone();
@@ -417,18 +437,18 @@ impl Canvas {
         &self.buffer
     }
 
-    /// Save the contents of `text_buffer` as a grayscale PNG for debugging.
+    /// Save the contents of the text buffer as a grayscale PNG for debugging.
     pub fn save_text_buffer_png(&self, path: impl AsRef<Path>) -> anyhow::Result<()> {
-        let img = GrayImage::from_raw(TEXT_WIDTH, TEXT_WIDTH, self.text_buffer.to_vec())
-            .expect("text_buffer dimensions are always valid");
-        img.save(path.as_ref())?;
+        GrayImage::from_raw(TEXT_WIDTH, TEXT_WIDTH, self.text_buffer.to_vec())
+            .expect("text_buffer dimensions are always valid")
+            .save(path.as_ref())?;
         Ok(())
     }
 }
 
 impl Default for Canvas {
     fn default() -> Self {
-        Self::new()
+        Self::new(config().theme)
     }
 }
 

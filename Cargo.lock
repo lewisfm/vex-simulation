@@ -918,7 +918,7 @@ dependencies = [
  "iceoryx2-pal-configuration",
  "serde",
  "tiny-fn",
- "toml",
+ "toml 0.9.12+spec-1.1.0",
 ]
 
 [[package]]
@@ -1074,7 +1074,7 @@ dependencies = [
  "serde",
  "sha1_smol",
  "tiny-fn",
- "toml",
+ "toml 0.9.12+spec-1.1.0",
 ]
 
 [[package]]
@@ -2169,6 +2169,7 @@ dependencies = [
  "ctrlc",
  "dispatch2",
  "fast_image_resize",
+ "iceoryx2",
  "image",
  "objc2 0.6.4",
  "objc2-app-kit 0.3.2",
@@ -2627,6 +2628,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "toml"
+version = "1.1.2+spec-1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81f3d15e84cbcd896376e6730314d59fb5a87f31e4b038454184435cd57defee"
+dependencies = [
+ "indexmap",
+ "serde_core",
+ "serde_spanned",
+ "toml_datetime 1.1.1+spec-1.1.0",
+ "toml_parser",
+ "toml_writer",
+ "winnow 1.0.2",
+]
+
+[[package]]
 name = "toml_datetime"
 version = "0.7.5+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2819,8 +2835,10 @@ dependencies = [
  "pathfinder_geometry",
  "png",
  "roboscope-ipc",
+ "serde",
  "static_assertions",
  "thiserror 2.0.18",
+ "toml 1.1.2+spec-1.1.0",
  "tracing",
  "vex-sdk 0.28.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

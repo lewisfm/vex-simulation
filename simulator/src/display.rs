@@ -4,7 +4,10 @@ use parking_lot::{Condvar, Mutex};
 use tracing::{debug, trace};
 use vex_sdk::{V5_TouchEvent, V5_TouchStatus};
 
-use crate::canvas::{BUFSZ, CANVAS, Canvas, Point, Rect, SimImage, WIDTH};
+use crate::{
+    canvas::{BUFSZ, CANVAS, Canvas, Point, Rect, SimImage, WIDTH},
+    config::{DisplayTheme, config},
+};
 
 /// The shared V5 display instance.
 ///
@@ -27,10 +30,6 @@ static DEVICE_IMAGE: LazyLock<SimImage> =
 /// The shared state for a simulated display.
 pub struct SimDisplay {
     pub buffer: [u32; BUFSZ],
-
-    /// Indicates whether the header canvas should be hidden from the display, expanding the user
-    /// canvas mask to the full contents of the window.
-    pub header_hidden: bool,
 
     /// Indicates whether redraws should automatically render the user canvas without calls to
     /// [`vexDisplayRender`](crate::sdk::vexDisplayRender).
@@ -55,10 +54,10 @@ impl SimDisplay {
 
         Self {
             buffer: [0; _],
-            header_hidden: false,
+
             autorender: true,
             mouse_coords: Point::new(0, 0),
-            system_canvas: Some(Canvas::new().into()),
+            system_canvas: Some(Canvas::new(DisplayTheme::Dark).into()),
             program_display_name: String::new(),
             program_start: Instant::now(),
             mouse_down: false,
@@ -81,7 +80,7 @@ impl SimDisplay {
             self.render_user_canvas(&canvas);
         }
 
-        if !self.header_hidden {
+        if !config().header_hidden {
             self.render_header();
         }
     }
@@ -98,7 +97,7 @@ impl SimDisplay {
 
     /// Copy the given canvas onto the display using the correct mask for the global user canvas.
     pub fn render_user_canvas(&mut self, canvas: &Canvas) {
-        let mask = if self.header_hidden {
+        let mask = if config().header_hidden {
             Rect::FULL_CLIP
         } else {
             Rect::USER_CLIP
@@ -146,10 +145,12 @@ impl SimDisplay {
 
         canvas.state.fg_color = 0x00_00_00;
 
+        // Program name.
         canvas.state.set_named_font("proportional");
         canvas.state.font_scale = (2, 5);
         canvas.draw_string(Point::new(8, 0), &self.program_display_name, false);
 
+        // Program Timer.
         let elapsed = self.program_start.elapsed().as_secs();
         let minutes = elapsed / 60;
         let seconds = elapsed % 60;
@@ -159,18 +160,34 @@ impl SimDisplay {
         canvas.state.font_scale = (3, 5);
         canvas.draw_string(Point::new(246, 3), &elapsed_time, false);
 
+        // Brain Icon.
         let device = &*DEVICE_IMAGE;
         let device_coords = Point::new(WIDTH as i32 - device.width() - 4, -1);
         DEVICE_IMAGE.draw(&mut canvas, device_coords);
 
         // TODO: dynamically set using device snapshots, yellow when <= 30%
-        let battery = Rect::sized(452, 23, 13, 9);
-        canvas.state.fg_color = 0x93_C8_3F;
-        canvas.fill_rect(battery);
 
+        // Draw battery background.
+        let battery = Rect::sized(452, 23, 13, 9);
         canvas.state.fg_color = 0x00_00_00;
-        canvas.draw_rect(battery);
+        canvas.fill_rect(battery);
         canvas.fill_rect(Rect::sized(battery.left() + 13, battery.top() + 3, 2, 3));
+
+        // Battery fill scales with charge.
+        let battery_capacity = (config().battery_capacity / 100.0).clamp(0.0, 1.0);
+        let width = (10.0 * battery_capacity) as i32 + 1;
+
+        if battery_capacity <= 0.3 {
+            canvas.state.fg_color = 0xFF_A5_00;
+        } else {
+            canvas.state.fg_color = 0x93_C8_3F;
+        }
+        canvas.fill_rect(Rect::sized(
+            battery.left() + 1,
+            battery.top() + 1,
+            width,
+            battery.height() - 2,
+        ));
 
         self.blit_rect(canvas.buffer(), Rect::HEADER_CLIP);
         self.system_canvas = Some(canvas);

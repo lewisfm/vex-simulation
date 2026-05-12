@@ -39,7 +39,7 @@ use vex_sdk::{V5_DeviceT, V5_DeviceType};
 
 use crate::{
     device::{DEVICES, DeviceResolvable, HasDeviceCommand},
-    sdk::{warn_bad_enum, warn_once, warn_unplugged},
+    sdk::{warn_unknown_enum, warn_once, warn_unplugged},
 };
 
 #[derive(Debug, Default)]
@@ -204,7 +204,7 @@ pub extern "system" fn vexDeviceMotorDirectionGet(device: V5_DeviceT) -> i32 {
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceMotorModeSet(device: V5_DeviceT, mode: V5MotorControlMode) {
     let Ok(mode) = mode.try_into() else {
-        warn_bad_enum::<V5MotorControlMode>(mode.0);
+        warn_unknown_enum::<V5MotorControlMode>(mode.0);
         return;
     };
 
@@ -443,7 +443,7 @@ pub extern "system" fn vexDeviceMotorEncoderUnitsSet(
     units: V5MotorEncoderUnits,
 ) {
     let Ok(units) = units.try_into() else {
-        warn_bad_enum::<V5MotorEncoderUnits>(units.0);
+        warn_unknown_enum::<V5MotorEncoderUnits>(units.0);
         return;
     };
 
@@ -469,7 +469,7 @@ pub extern "system" fn vexDeviceMotorEncoderUnitsGet(device: V5_DeviceT) -> V5Mo
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceMotorBrakeModeSet(device: V5_DeviceT, mode: V5MotorBrakeMode) {
     let Ok(mode) = mode.try_into() else {
-        warn_bad_enum::<V5MotorBrakeMode>(mode.0);
+        warn_unknown_enum::<V5MotorBrakeMode>(mode.0);
         return;
     };
 
@@ -706,7 +706,7 @@ pub extern "system" fn vexDeviceMotorVoltageGet(device: V5_DeviceT) -> i32 {
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDeviceMotorGearingSet(device: V5_DeviceT, gearset: V5MotorGearset) {
     let Some(gearset) = MotorGearset::new(gearset) else {
-        warn_bad_enum::<V5MotorGearset>(gearset.0);
+        warn_unknown_enum::<V5MotorGearset>(gearset.0);
         return;
     };
 

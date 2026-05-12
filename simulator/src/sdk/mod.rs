@@ -42,6 +42,11 @@ use parking_lot::Mutex;
 use tracing::warn;
 use vex_sdk::{V5_DeviceT, V5_DeviceType};
 
+use crate::{
+    config::{Warning, config},
+    device::{DEVICES, DeviceResolvable},
+};
+
 unsafe extern "C" {
     unsafe fn vsnprintf(
         buffer: *mut c_char,
@@ -54,11 +59,14 @@ unsafe extern "C" {
 static WARN_ONCE: LazyLock<Mutex<HashSet<&'static str>>> = LazyLock::new(Mutex::default);
 
 macro_rules! sdk_unimplemented {
-    ($name:literal) => {
-        if $crate::sdk::WARN_ONCE.lock().insert($name) {
-            ::tracing::warn!(target: "sdk", name = %$name, "[TODO] Unimplemented function called");
+    ($name:literal) => {{
+        use $crate::config::{config, Warning};
+
+        let suppressed = config().suppress_warnings.contains(&Warning::SdkUnimplemented);
+        if !suppressed && $crate::sdk::WARN_ONCE.lock().insert($name) {
+            ::tracing::warn!(target: "sdk", name = %$name, "[TODO] not implemented");
         }
-    };
+    }};
 }
 use sdk_unimplemented;
 
@@ -71,31 +79,23 @@ macro_rules! warn_once {
 }
 use warn_once;
 
-use crate::device::{DEVICES, DeviceResolvable};
-
-fn bool_env(name: &'static str, default: bool) -> bool {
-    let bool = std::env::var("V5_REPORT_UNPLUGGED").unwrap_or_default();
-    if bool.is_empty() {
-        default
-    } else {
-        bool != "0"
-    }
-}
-
-static REPORT_UNPLUGGED: LazyLock<bool> = LazyLock::new(|| bool_env("V5_REPORT_UNPLUGGED", true));
-static REPORT_BAD_ENUM: LazyLock<bool> = LazyLock::new(|| bool_env("V5_REPORT_BAD_ENUM", true));
-
 #[track_caller]
 fn warn_unplugged(device: V5_DeviceT, expected: V5_DeviceType) {
-    if *REPORT_UNPLUGGED {
+    if !config()
+        .suppress_warnings
+        .contains(&Warning::MissingDevices)
+    {
         let port = device.to_port(&DEVICES.lock());
         warn!(expected = %device_name(expected), port, "Tried to control a missing smart device");
     }
 }
 
 #[track_caller]
-fn warn_bad_enum<T>(value: impl Into<u32>) {
-    if *REPORT_BAD_ENUM {
+fn warn_unknown_enum<T>(value: impl Into<u32>) {
+    if !config()
+        .suppress_warnings
+        .contains(&Warning::UnknownEnumVariants)
+    {
         let value = value.into();
         let enum_name = type_name::<T>();
 

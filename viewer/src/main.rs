@@ -12,6 +12,7 @@ use fast_image_resize::{
     images::{TypedImage, TypedImageRef},
     pixels::U8x4,
 };
+use iceoryx2::{node::NodeBuilder, signal_handling_mode::SignalHandlingMode};
 use roboscope_ipc::{
     Config, Publisher, Sample, SimServices, Subscriber,
     display::{DISPLAY_HEIGHT, DISPLAY_WIDTH, DisplayFrame, DisplayInput, DisplayInputKind},
@@ -51,7 +52,11 @@ pub struct ViewerApp {
 
 impl ViewerApp {
     pub fn start() -> Result<()> {
-        let ipc = SimServices::join(Some("viewer"), &Config::default())?;
+        let builder = NodeBuilder::new()
+            .config(&Config::default())
+            .signal_handling_mode(SignalHandlingMode::Disabled);
+        let ipc = SimServices::custom(Some("viewer"), builder)?;
+
         let subscriber = ipc.display_frames()?.subscriber_builder().create()?;
         let publisher = ipc.display_input()?.publisher_builder().create()?;
 
@@ -139,7 +144,7 @@ impl ApplicationHandler<ViewerEvent> for ViewerApp {
                 }
 
                 if let Some(d) = &mut self.sim_display {
-                    d.queue_redraw();
+                    d.recv_frame();
                 }
             }
             _ => {}
@@ -166,17 +171,12 @@ pub struct SimDisplayWindow {
     surface: Surface<OwnedDisplayHandle, Rc<Window>>,
     subscriber: Subscriber<DisplayFrame>,
     publisher: Publisher<DisplayInput>,
-    last_frame: Option<Sample<DisplayFrame>>,
+    last_frame: Option<Box<DisplayFrame>>,
 
     scale_factor: f64,
     num_clicks: u32,
     is_mouse_down: bool,
     mouse_coords: [i16; 2],
-
-    // A frame has been explicitly requested by the app; the next redraw should autorender the
-    // canvas, update the program header, notify vexDisplayRender callers, etc. instead of just
-    // scaling the previous rendered frame.
-    has_scheduled_frame: bool,
 }
 
 impl SimDisplayWindow {
@@ -220,7 +220,6 @@ impl SimDisplayWindow {
             is_mouse_down: false,
             mouse_coords: [0, 0],
             num_clicks: 0,
-            has_scheduled_frame: true,
         })
     }
 
@@ -313,9 +312,14 @@ impl SimDisplayWindow {
         }
     }
 
-    pub fn queue_redraw(&mut self) {
-        self.has_scheduled_frame = true;
-        self.window.request_redraw();
+    pub fn recv_frame(&mut self) {
+        // AFAIK it's not supposed to work this way, but copying the frame out of shared memory via
+        // Box allows the viewer to keep accessing it even if the publisher process exits,
+        // preventing a segmentation fault.
+        if let Some(frame) = self.subscriber.receive().expect("should receive frame") {
+            self.last_frame = Some(Box::new(frame.clone()));
+            self.window.request_redraw();
+        }
     }
 
     pub fn window_id(&self) -> WindowId {
@@ -324,7 +328,11 @@ impl SimDisplayWindow {
 
     /// Scale the display's contents to the size of the window, then write them to the framebuffer.
     pub fn redraw(&mut self) -> Result<()> {
-        let next_frame = self.subscriber.receive()?;
+        let next_frame = self
+            .subscriber
+            .receive()?
+            .map(|frame| Box::new(frame.clone()));
+
         let Some(frame) = next_frame.as_ref().or(self.last_frame.as_ref()) else {
             return Ok(());
         };

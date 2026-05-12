@@ -13,8 +13,7 @@ use tracing::trace;
 pub use vex_sdk::v5_image;
 
 use crate::{
-    canvas::{CANVAS, Canvas, HEADER_HEIGHT, Point, Rect, WIDTH},
-    display::{DISPLAY, SimDisplay},
+    canvas::{CANVAS, Canvas, DEFAULT_BLACK, DEFAULT_WHITE, HEADER_HEIGHT, Point, Rect, WIDTH}, config::DisplayTheme, display::{DISPLAY, SimDisplay}
 };
 
 /// Set the foreground color.
@@ -29,22 +28,30 @@ pub extern "system" fn vexDisplayBackgroundColor(col: u32) {
     CANVAS.lock().state.bg_color = col;
 }
 
+/// Fill the screen with the default background color.
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDisplayErase() {
-    super::sdk_unimplemented!("vexDisplayErase");
-    todo!()
+    let mut canvas = CANVAS.lock();
+    let original_fg_color = canvas.state.fg_color;
+
+    canvas.state.fg_color = if canvas.theme() == DisplayTheme::Dark {
+        DEFAULT_BLACK
+    } else {
+        DEFAULT_WHITE
+    };
+    canvas.fill_rect(Rect::FULL_CLIP);
+
+    canvas.state.fg_color = original_fg_color;
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDisplayScroll(nStartLine: i32, nLines: i32) {
     super::sdk_unimplemented!("vexDisplayScroll");
-    todo!()
 }
 
 #[unsafe(no_mangle)]
 pub extern "system" fn vexDisplayScrollRect(x1: i32, y1: i32, x2: i32, y2: i32, nLines: i32) {
     super::sdk_unimplemented!("vexDisplayScrollRect");
-    todo!()
 }
 
 /// Copies pixels from the given buffer `pSrc` to the canvas.

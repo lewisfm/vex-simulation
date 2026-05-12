@@ -40,6 +40,11 @@ pub struct SimServices {
 
 impl SimServices {
     pub fn join(name: Option<&str>, config: &Config) -> SimResult<Self> {
+        let node = NodeBuilder::new().config(&Config::default());
+        SimServices::custom(name, node)
+    }
+
+    pub fn custom(name: Option<&str>, builder: NodeBuilder) -> SimResult<Self> {
         let mut node = NodeBuilder::new().config(&Config::default());
 
         if let Some(name) = name {
