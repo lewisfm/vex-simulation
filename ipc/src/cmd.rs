@@ -2,14 +2,14 @@
 //!
 //! These events are intended to be consumed by physics simulators or device controllers.
 
-use derive_more::{From, TryInto};
+use derive_more::{Deref, From, TryInto};
 use iceoryx2::prelude::ZeroCopySend;
 use vex_sdk::{V5MotorBrakeMode, V5MotorControlMode, V5MotorGearset};
 
 use crate::SMART_DEVICES_COUNT;
 
 /// A packet which reports the most recent commands from a robot controller to its peripherals.
-#[derive(Debug, Copy, Clone, PartialEq, ZeroCopySend, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, ZeroCopySend, Default, Deref)]
 #[repr(C)]
 pub struct RobotOutputs(pub [DeviceCommand; SMART_DEVICES_COUNT]);
 

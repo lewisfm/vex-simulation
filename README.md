@@ -46,6 +46,24 @@ cargo install --git https://github.com/lewisfm/vex-simulation roboscope-viewer
 
 Then run `roboscope-viewer` while your program is running.
 
+## Configuration
+
+The file `v5sim.toml` is optionally read from the current directory for simulator configuration.
+It has this form:
+
+```toml
+# All fields are optional.
+debug = ["text-buffer"]
+header-hidden = true
+theme = "light"
+battery-capacity = 100.0
+suppress-warnings = [
+    "sdk-unimplemented",
+    "missing-devices",
+    "unknown-enum-variants",
+]
+```
+
 ## Projects
 
 - [Brain Simulator] aka `vex-sdk-desktop`: Drop-in replacement SDK library which provides desktop
@@ -64,13 +82,20 @@ is the `display` example).
 [Display Viewer]: ./viewer
 [IPC Library]: ./ipc
 
-## Planned
+## Features
 
-I'm working on wiring up the device APIs to the IPC library so you can send simulated sensor
-readings to your brain simulator and control simulated motors.
+- Accurate display emulation with mouse input and text rendering
+- Connect to an [external physics simulator] or display viewer app
+- Complete motor and distance sensor APIs
+- Compatible with vexide programs and libraries
 
-If this project pans out I'm also planning to get this integrated into vexide to make it more plug
-and play.
+[external physics simulator]: ./docs/tutorial-physics-sim.md
+
+What's left:
+
+- Wiring up the device APIs to the IPC library so you can send simulated sensor
+readings to your brain simulator and control.
+- Adding an integration with vexide_startup
 
 ## Usage
 
@@ -93,14 +118,6 @@ on port 1 and oscillate it back and forth):
 
 ```sh
 cargo run -p roboscope-ipc --example oscillator
-```
-
-### Builtin Display mode
-
-As a convenience, you can completely disable IPC support and instead open the display window directly from your V5 simulator process.
-
-```sh
-cargo run --example display -F vex-sdk-desktop/windowed
 ```
 
 ## Troubleshooting
