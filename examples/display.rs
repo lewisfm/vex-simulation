@@ -1,24 +1,17 @@
-use std::{
-    f64::consts::{PI, TAU},
-    process::exit,
-    thread,
-    time::Duration,
-};
+use std::f64::consts::PI;
 
 use embedded_graphics::{
     pixelcolor::{Rgb888, raw::RawU24},
     prelude::RawData,
 };
 use tinybmp::Bmp;
-use tracing_subscriber::EnvFilter;
 use vex_sdk::*;
 use vexide::prelude::Peripherals;
 
-mod common;
+#[vexide::main]
+async fn main(_p: Peripherals) {
+    vex_sdk_desktop::init().unwrap();
 
-common::create_main!(entry);
-
-async fn entry(_p: Peripherals) {
     println!("Hello world!");
 
     unsafe {
@@ -51,16 +44,14 @@ async fn entry(_p: Peripherals) {
 
         let offset = 200 * width + 325;
 
-        unsafe {
-            vexDisplayCopyRect(
-                20,
-                150,
-                100,
-                220,
-                img_data.as_ptr().cast_mut().wrapping_add(offset as usize),
-                width as i32,
-            );
-        }
+        vexDisplayCopyRect(
+            20,
+            150,
+            100,
+            220,
+            img_data.as_ptr().cast_mut().wrapping_add(offset as usize),
+            width as i32,
+        );
 
         let string = c"Vex V5!";
         vexDisplayTextSize(1, 1);

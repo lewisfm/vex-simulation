@@ -1,4 +1,11 @@
-use iceoryx2::{node::NodeCreationFailure, port::{LoanError, ReceiveError, SendError, publisher::PublisherCreateError, subscriber::SubscriberCreateError}, service::builder::publish_subscribe::PublishSubscribeOpenOrCreateError};
+use iceoryx2::{
+    node::NodeCreationFailure,
+    port::{
+        LoanError, ReceiveError, SendError, publisher::PublisherCreateError,
+        subscriber::SubscriberCreateError,
+    },
+    service::builder::publish_subscribe::PublishSubscribeOpenOrCreateError,
+};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -24,6 +31,5 @@ pub enum RoboscopeIpcError {
     #[error("Failed to send a packet")]
     SendError(#[from] SendError),
 }
-
 
 pub type SimResult<T> = Result<T, RoboscopeIpcError>;

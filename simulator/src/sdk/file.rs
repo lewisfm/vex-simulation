@@ -38,7 +38,12 @@ pub extern "system" fn vexFileClose(fdp: *mut FIL) {
     super::sdk_unimplemented!("vexFileClose");
 }
 #[unsafe(no_mangle)]
-pub extern "system" fn vexFileWrite(buf: *mut c_char, size: u32, nItems: u32, fdp: *mut FIL) -> i32 {
+pub extern "system" fn vexFileWrite(
+    buf: *mut c_char,
+    size: u32,
+    nItems: u32,
+    fdp: *mut FIL,
+) -> i32 {
     super::sdk_unimplemented!("vexFileWrite");
     Default::default()
 }

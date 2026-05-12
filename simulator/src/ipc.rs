@@ -9,7 +9,7 @@ use crate::{
     sdk::touch::TOUCH_SUBSCRIBER,
 };
 
-pub fn start(name: &str, entrypoint: impl FnOnce() + Send + 'static) -> anyhow::Result<()> {
+pub fn start(name: &str) -> anyhow::Result<()> {
     DISPLAY.lock().set_program_name(name);
 
     let ipc = Arc::new(SimServices::join(
@@ -19,26 +19,20 @@ pub fn start(name: &str, entrypoint: impl FnOnce() + Send + 'static) -> anyhow::
 
     start_renderer(ipc.clone());
     _ = DEVICES_STREAM.set(DevicesStream::new(ipc.clone())?);
-    let user_code = thread::spawn(entrypoint);
-
-    while ipc.node.wait(Duration::from_millis(10)).is_ok() {
-        if user_code.is_finished() {
-            break;
-        }
-    }
 
     Ok(())
 }
 
 fn start_renderer(ipc: Arc<SimServices>) {
-    TOUCH_SUBSCRIBER.set(
-        ipc.display_input()
-            .unwrap()
-            .subscriber_builder()
-            .create()
-            .unwrap(),
-    )
-    .expect("Touch subscriber should be unset");
+    TOUCH_SUBSCRIBER
+        .set(
+            ipc.display_input()
+                .unwrap()
+                .subscriber_builder()
+                .create()
+                .unwrap(),
+        )
+        .expect("Touch subscriber should be unset");
 
     thread::Builder::new()
         .name("Sim Display Render".into())

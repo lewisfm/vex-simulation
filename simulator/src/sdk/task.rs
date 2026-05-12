@@ -6,7 +6,11 @@ use std::time::{Duration, Instant};
 use parking_lot::Mutex;
 use vex_sdk::V5_TouchEvent;
 
-use crate::{canvas::HEADER_HEIGHT, device::{DEVICES, DEVICES_STREAM}, display::DISPLAY};
+use crate::{
+    canvas::HEADER_HEIGHT,
+    device::{DEVICES, DEVICES_STREAM},
+    display::DISPLAY,
+};
 
 #[unsafe(no_mangle)]
 pub unsafe extern "system" fn vexTaskAdd(
@@ -84,6 +88,8 @@ pub fn update_device_readings() {
 
 #[unsafe(no_mangle)]
 pub extern "system" fn vexTasksRun() {
+
+
     let mut tasks = TASKS.lock();
     let now = Instant::now();
 

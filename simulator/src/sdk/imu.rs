@@ -20,11 +20,17 @@ pub extern "system" fn vexDeviceImuDegreesGet(device: V5_DeviceT) -> c_double {
     Default::default()
 }
 #[unsafe(no_mangle)]
-pub extern "system" fn vexDeviceImuQuaternionGet(device: V5_DeviceT, data: *mut V5_DeviceImuQuaternion) {
+pub extern "system" fn vexDeviceImuQuaternionGet(
+    device: V5_DeviceT,
+    data: *mut V5_DeviceImuQuaternion,
+) {
     super::sdk_unimplemented!("vexDeviceImuQuaternionGet");
 }
 #[unsafe(no_mangle)]
-pub extern "system" fn vexDeviceImuAttitudeGet(device: V5_DeviceT, data: *mut V5_DeviceImuAttitude) {
+pub extern "system" fn vexDeviceImuAttitudeGet(
+    device: V5_DeviceT,
+    data: *mut V5_DeviceImuAttitude,
+) {
     super::sdk_unimplemented!("vexDeviceImuAttitudeGet");
 }
 #[unsafe(no_mangle)]

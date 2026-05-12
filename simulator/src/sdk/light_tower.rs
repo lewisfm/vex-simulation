@@ -22,7 +22,11 @@ pub extern "system" fn vexDeviceLightTowerRgbGet(device: V5_DeviceT) -> u32 {
     Default::default()
 }
 #[unsafe(no_mangle)]
-pub extern "system" fn vexDeviceLightTowerRgbSet(device: V5_DeviceT, rgb_value: u32, xyw_value: u32) {
+pub extern "system" fn vexDeviceLightTowerRgbSet(
+    device: V5_DeviceT,
+    rgb_value: u32,
+    xyw_value: u32,
+) {
     super::sdk_unimplemented!("vexDeviceLightTowerRgbSet");
 }
 #[unsafe(no_mangle)]

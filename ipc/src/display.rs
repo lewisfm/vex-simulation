@@ -8,14 +8,12 @@ pub const DISPLAY_WIDTH: u32 = 480;
 pub const DISPLAY_HEIGHT: u32 = 272;
 pub const DISPLAY_BUF_SIZE: usize = DISPLAY_WIDTH as usize * DISPLAY_HEIGHT as usize;
 
-
 #[derive(derive_more::Debug, ZeroCopySend, PartialEq, Eq, Clone)]
 #[repr(C)]
 pub struct DisplayFrame {
     #[debug("..")]
     pub buffer: [u32; DISPLAY_BUF_SIZE],
 }
-
 
 /// A touch event, with coordinates.
 ///
@@ -30,7 +28,6 @@ pub struct DisplayInput {
     pub press_count: u32,
     pub release_count: u32,
 }
-
 
 #[derive(Debug, ZeroCopySend, PartialEq, Eq, Clone, Copy)]
 #[repr(C)]

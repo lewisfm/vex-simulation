@@ -24,7 +24,10 @@ pub extern "system" fn vexDeviceAiVisionCodeGet(
     Default::default()
 }
 #[unsafe(no_mangle)]
-pub extern "system" fn vexDeviceAiVisionCodeSet(device: V5_DeviceT, pCode: *mut V5_DeviceAiVisionCode) {
+pub extern "system" fn vexDeviceAiVisionCodeSet(
+    device: V5_DeviceT,
+    pCode: *mut V5_DeviceAiVisionCode,
+) {
     super::sdk_unimplemented!("vexDeviceAiVisionCodeSet");
 }
 #[unsafe(no_mangle)]

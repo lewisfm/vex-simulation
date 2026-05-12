@@ -1,25 +1,11 @@
-use std::{
-    f64::consts::{PI, TAU},
-    mem::MaybeUninit,
-    process::exit,
-    thread::{self, sleep},
-    time::Duration,
-};
-
-use embedded_graphics::{
-    pixelcolor::{Rgb888, raw::RawU24},
-    prelude::RawData,
-};
-use tinybmp::Bmp;
-use tracing_subscriber::EnvFilter;
+use std::{mem::MaybeUninit, thread::sleep, time::Duration};
 use vex_sdk::*;
 use vexide::prelude::Peripherals;
 
-mod common;
+#[vexide::main]
+async fn main(_p: Peripherals) {
+    vex_sdk_desktop::init().unwrap();
 
-common::create_main!(entry);
-
-async fn entry(_p: Peripherals) {
     unsafe {
         loop {
             let mut touch_status = MaybeUninit::uninit();
@@ -43,7 +29,6 @@ async fn entry(_p: Peripherals) {
 
             // Intentionally make it slow so you can see the events better.
             sleep(Duration::from_millis(100));
-
         }
     }
 }

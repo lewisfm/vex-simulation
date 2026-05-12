@@ -2,22 +2,19 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 
 use std::path::Path;
-#[cfg(not(feature = "windowed"))]
-use std::sync::Arc;
-
-#[cfg(not(feature = "windowed"))]
-use roboscope_ipc::SimServices;
 
 mod canvas;
 mod config;
-mod display;
-pub mod sdk;
 mod device;
-mod frontend;
+mod display;
 pub mod error;
+mod ipc;
+pub mod sdk;
 
-
-pub fn run_simulator(entrypoint: impl FnOnce() + Send + 'static) -> anyhow::Result<()> {
+/// Initialize the simulator.
+///
+/// This should be called before accessing SDK functions, or else they will effectively be no-ops.
+pub fn init() -> anyhow::Result<()> {
     let mut args = std::env::args();
     let path = args.next().unwrap_or_else(|| "Simulator".to_string());
 
@@ -26,8 +23,7 @@ pub fn run_simulator(entrypoint: impl FnOnce() + Send + 'static) -> anyhow::Resu
         .and_then(|str| str.to_str())
         .unwrap_or(&path);
 
-
-    frontend::start(exe_name, entrypoint)?;
+    ipc::start(exe_name)?;
 
     Ok(())
 }

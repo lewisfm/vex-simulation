@@ -1,12 +1,10 @@
-use std::{mem, num::NonZeroU32, rc::Rc, sync::LazyLock, time::Instant};
+use std::{sync::LazyLock, time::Instant};
 
 use parking_lot::{Condvar, Mutex};
 use tracing::{debug, trace};
 use vex_sdk::{V5_TouchEvent, V5_TouchStatus};
 
-use crate::{
-    canvas::{BUFSZ, CANVAS, Canvas, HEIGHT, Point, Rect, WIDTH, img::SimImage},
-};
+use crate::canvas::{BUFSZ, CANVAS, Canvas, Point, Rect, SimImage, WIDTH};
 
 /// The shared V5 display instance.
 ///

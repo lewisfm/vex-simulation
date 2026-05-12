@@ -8,7 +8,9 @@ pub extern "system" fn vexControllerGet(id: V5_ControllerId, index: V5_Controlle
     Default::default()
 }
 #[unsafe(no_mangle)]
-pub extern "system" fn vexControllerConnectionStatusGet(id: V5_ControllerId) -> V5_ControllerStatus {
+pub extern "system" fn vexControllerConnectionStatusGet(
+    id: V5_ControllerId,
+) -> V5_ControllerStatus {
     super::sdk_unimplemented!("vexControllerConnectionStatusGet");
     Default::default()
 }

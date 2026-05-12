@@ -6,9 +6,39 @@ RoboScope is an enhanced desktop SDK for vexide with features like display simul
 
 ## Getting started
 
-Add vex-sdk-simulator as a dependency and change your program entrypoint to call `vex_sdk_simulator::run_simulator`.
+Add vex-sdk-desktop as a dependency in you Cargo.toml. Make sure you are manually managing what
+SDK your project uses instead of using vexide's `default-sdk` feature, like this:
 
-Then `cargo run`. If you would like to see display output:
+```toml
+vexide = { version = "0.8.0", features = ["full"] }
+
+[target.'cfg(target_os = "vexos")'.dependencies]
+vex-sdk-jumptable = "0.1"
+
+[target.'cfg(not(target_os = "vexos"))'.dependencies]
+vex-sdk-desktop = { git = "https://github.com/lewisfm/vex-simulation" }
+```
+
+Then, initialize it from your main function:
+
+```rs
+// IMPORTANT: Bring the normal SDK into scope, since we're managing SDKs manually.
+#[cfg(target_os = "vexos")]
+use vex_sdk_jumptable as _;
+
+#[vexide::main]
+async fn main(peripherals: Peripherals) {
+    // IMPORTANT: Enable the simulator SDK.
+    #[cfg(not(target_os = "vexos"))]
+    vex_sdk_desktop::init().expect("Simulator should initialize");
+
+    // ...Whatever else your program normally does...
+}
+```
+
+Then `cargo run`.
+
+If you would like to see display output, install the display viewer:
 
 ```sh
 cargo install --git https://github.com/lewisfm/vex-simulation roboscope-viewer

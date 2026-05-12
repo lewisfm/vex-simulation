@@ -319,7 +319,13 @@ pub extern "system" fn vexDisplayDoubleBufferDisable() {
 
 /// Unimplemented.
 #[unsafe(no_mangle)]
-pub extern "system" fn vexDisplayClipRegionSetWithIndex(index: i32, x1: i32, y1: i32, x2: i32, y2: i32) {
+pub extern "system" fn vexDisplayClipRegionSetWithIndex(
+    index: i32,
+    x1: i32,
+    y1: i32,
+    x2: i32,
+    y2: i32,
+) {
     super::sdk_unimplemented!("vexDisplayClipRegionSetWithIndex");
     unimplemented!("VEXos task api")
 }

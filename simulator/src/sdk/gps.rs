@@ -20,7 +20,10 @@ pub extern "system" fn vexDeviceGpsDegreesGet(device: V5_DeviceT) -> c_double {
     Default::default()
 }
 #[unsafe(no_mangle)]
-pub extern "system" fn vexDeviceGpsQuaternionGet(device: V5_DeviceT, data: *mut V5_DeviceGpsQuaternion) {
+pub extern "system" fn vexDeviceGpsQuaternionGet(
+    device: V5_DeviceT,
+    data: *mut V5_DeviceGpsQuaternion,
+) {
     super::sdk_unimplemented!("vexDeviceGpsQuaternionGet");
 }
 #[unsafe(no_mangle)]
@@ -62,7 +65,11 @@ pub extern "system" fn vexDeviceGpsOriginSet(device: V5_DeviceT, ox: c_double, o
     super::sdk_unimplemented!("vexDeviceGpsOriginSet");
 }
 #[unsafe(no_mangle)]
-pub extern "system" fn vexDeviceGpsOriginGet(device: V5_DeviceT, ox: *mut c_double, oy: *mut c_double) {
+pub extern "system" fn vexDeviceGpsOriginGet(
+    device: V5_DeviceT,
+    ox: *mut c_double,
+    oy: *mut c_double,
+) {
     super::sdk_unimplemented!("vexDeviceGpsOriginGet");
 }
 #[unsafe(no_mangle)]

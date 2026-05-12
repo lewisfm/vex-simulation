@@ -1,12 +1,8 @@
 //! Display renderer implementation which writes data to a GUI window.
 
 use std::{
-    mem,
     num::NonZeroU32,
-    path::Path,
     rc::Rc,
-    sync::LazyLock,
-    thread,
     time::{Duration, Instant},
 };
 
@@ -17,7 +13,7 @@ use fast_image_resize::{
     pixels::U8x4,
 };
 use roboscope_ipc::{
-    Config, PubSubFactory, Publisher, Sample, SimServices, Subscriber,
+    Config, Publisher, Sample, SimServices, Subscriber,
     display::{DISPLAY_HEIGHT, DISPLAY_WIDTH, DisplayFrame, DisplayInput, DisplayInputKind},
 };
 use softbuffer::{Context, Surface};
@@ -25,7 +21,7 @@ use tracing::{debug, error, trace};
 use winit::{
     application::ApplicationHandler,
     dpi::LogicalSize,
-    event::{ElementState, MouseButton, StartCause, WindowEvent},
+    event::{MouseButton, StartCause, WindowEvent},
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop, OwnedDisplayHandle},
     window::{Theme, Window, WindowId},
 };

@@ -15,7 +15,10 @@ pub extern "system" fn vexDeviceMagnetPowerGet(device: V5_DeviceT) -> i32 {
     Default::default()
 }
 #[unsafe(no_mangle)]
-pub extern "system" fn vexDeviceMagnetPickup(device: V5_DeviceT, duration: V5_DeviceMagnetDuration) {
+pub extern "system" fn vexDeviceMagnetPickup(
+    device: V5_DeviceT,
+    duration: V5_DeviceMagnetDuration,
+) {
     super::sdk_unimplemented!("vexDeviceMagnetPickup");
 }
 #[unsafe(no_mangle)]

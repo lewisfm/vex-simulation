@@ -55,7 +55,10 @@ pub extern "system" fn vexDeviceVisionBrightnessGet(device: V5_DeviceT) -> u8 {
     Default::default()
 }
 #[unsafe(no_mangle)]
-pub extern "system" fn vexDeviceVisionWhiteBalanceModeSet(device: V5_DeviceT, mode: V5VisionWBMode) {
+pub extern "system" fn vexDeviceVisionWhiteBalanceModeSet(
+    device: V5_DeviceT,
+    mode: V5VisionWBMode,
+) {
     super::sdk_unimplemented!("vexDeviceVisionWhiteBalanceModeSet");
 }
 #[unsafe(no_mangle)]
@@ -64,7 +67,10 @@ pub extern "system" fn vexDeviceVisionWhiteBalanceModeGet(device: V5_DeviceT) ->
     Default::default()
 }
 #[unsafe(no_mangle)]
-pub extern "system" fn vexDeviceVisionWhiteBalanceSet(device: V5_DeviceT, color: V5_DeviceVisionRgb) {
+pub extern "system" fn vexDeviceVisionWhiteBalanceSet(
+    device: V5_DeviceT,
+    color: V5_DeviceVisionRgb,
+) {
     super::sdk_unimplemented!("vexDeviceVisionWhiteBalanceSet");
 }
 #[unsafe(no_mangle)]

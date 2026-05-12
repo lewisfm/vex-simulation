@@ -5,7 +5,10 @@ use std::sync::OnceLock;
 use roboscope_ipc::{Subscriber, display::DisplayInput};
 pub use vex_sdk::{V5_TouchEvent, V5_TouchStatus};
 
-use crate::{canvas::{HEADER_HEIGHT, Point}, display::DISPLAY};
+use crate::{
+    canvas::{HEADER_HEIGHT, Point},
+    display::DISPLAY,
+};
 
 #[unsafe(no_mangle)]
 pub extern "system" fn vexTouchUserCallbackSet(callback: extern "C" fn(V5_TouchEvent, i32, i32)) {
@@ -36,9 +39,6 @@ pub(crate) fn update_touch_status() {
         // user libraries act as though "1 call to vexTouchDataGet" = "1 touch event". I'm not sure
         // what's really the correct approach, but this approach of simulating that seems to make
         // them work properly.
-
-        // Note to people refactoring this: mouse_down and mouse_coords are also updated directly by
-        // the in-process GUI frontend which doesn't use IPC to create touch events.
         while let Some(sample) = subscriber.receive().expect("could receive sample") {
             display.mouse_down = sample.press_count > sample.release_count;
             display.mouse_coords = Point::new(sample.x as i32, sample.y as i32);

@@ -15,7 +15,9 @@ use std::{
 use derive_more::{AsRef, From, TryInto, TryIntoError};
 use parking_lot::{Mutex, MutexGuard};
 use roboscope_ipc::{
-    PHYSICS_UPDATE_PERIOD, SMART_DEVICES_COUNT, Sample, SimServices, Subscriber, cmd::DeviceCommand, snapshot::{DeviceReadings, DeviceSnapshot, DistanceSnapshot, GenericSnapshot, MotorSnapshot}
+    PHYSICS_UPDATE_PERIOD, SMART_DEVICES_COUNT, Sample, SimServices, Subscriber,
+    cmd::DeviceCommand,
+    snapshot::{DeviceReadings, DeviceSnapshot, DistanceSnapshot, GenericSnapshot, MotorSnapshot},
 };
 use static_assertions::const_assert_ne;
 use tracing::{debug, trace};

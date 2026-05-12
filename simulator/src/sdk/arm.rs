@@ -83,7 +83,10 @@ pub extern "system" fn vexDeviceArmSpinJoints(device: V5_DeviceT, velocities: *m
     super::sdk_unimplemented!("vexDeviceArmSpinJoints");
 }
 #[unsafe(no_mangle)]
-pub extern "system" fn vexDeviceArmSetJointPositions(device: V5_DeviceT, new_positions: *mut c_double) {
+pub extern "system" fn vexDeviceArmSetJointPositions(
+    device: V5_DeviceT,
+    new_positions: *mut c_double,
+) {
     super::sdk_unimplemented!("vexDeviceArmSetJointPositions");
 }
 #[unsafe(no_mangle)]
