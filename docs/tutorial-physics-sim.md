@@ -73,9 +73,6 @@ sim.publish_device_readings(|_cmds| {
 
 ## Handle device commands
 
-> [!Note]
-> Unfinished, currently...
-
 Robot programs might periodically issue device commands, which you can use to decide what happens in the physics simulation. For example, a program might want to apply PWM control to a motor, which you can keep track of:
 
 ```rs

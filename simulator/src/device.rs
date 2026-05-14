@@ -1,34 +1,72 @@
 //! Smart device registry and state management.
-
-#![allow(unused)]
+//!
+//! The smart device registry for the process should be accessed via
+//!
+//! # Handles
+//!
+//! Robot programs can access devices via opaque device handles ([`V5_DeviceT`]). RoboScope
+//! implements these as pointers into the [`DEVICES`] registry for parity with the VEX V5's
+//! behavior. However, handles that are passed to SDK function aren't actually directly
+//! dereferenced; instead, the SDK just calculates the handle's [offset in the device array] and
+//! continues to access the data they refer to safely.
+//!
+//! Technically, with this implementation, handles could just be numbers (e.g. `1 as *mut void`
+//! would be port 1), but making them pointers ensures that any pointer validity tests run on
+//! handles will pass.
+//!
+//! # Readings, State, and Commands
+//!
+//! There are 3 smart device artifacts which the SDK uses to control devices: device readings, which
+//! are packets from the physics simulator that contain device inputs, device state, which are
+//! structs that keep track of the intent of user robot programs, and device commands, which are
+//! packets sent to the physics simulator that are generated completely from device state.
+//!
+//! ```text
+//! f(new readings, state) -> new state
+//! g(state) -> commands
+//! ```
+//!
+//! The most recent readings for a device (if any) are stored in [`Devices::readings`], and its
+//! corresponding state is stored in [`Devices::smart_devices`] - although it may be easier to
+//! access them via [`Devices::resolve`]/[`Devices::state_for`] which lets you specify the kind of
+//! device readings/state you want with a type parameter.
+//!
+//! Some devices do not have any state at all: distance sensors cannot be configured and don't need
+//! to be told what to do, so they use [`V5DeviceState::None`] (which generates
+//! [`DeviceCommand::Empty`] commands). Other devices, like motors, can be configured to return
+//! their readings in different units or even commanded to take action in the world, so they use
+//! state to remember how they need to act.
+//!
+//! Devices readings (inputs) are updated at the [physics update period](PHYSICS_UPDATE_PERIOD)
+//! from a [task](`crate::sdk::task::vexTasksRun`) callback. Whenever new readings come in, the
+//! stored state for each device is compared to what's actually plugged in to that smart port, and
+//! if there's a mismatch, the state is re-initialized as the correct type. (`Motor -> Unplugged`
+//! wouldn't cause the state to be reinitialized, but `Motor -> Distance` would.) Immediately after
+//! that, [`V5DeviceState::command`] is called on each state struct to figure out what to send to
+//! the physics simulator.
 
 use std::{
-    ptr,
-    sync::{
-        Arc, LazyLock,
-        atomic::{AtomicU32, Ordering},
-    },
-    thread,
-    time::{Duration, Instant, SystemTime},
+    sync::{Arc, LazyLock},
+    time::SystemTime,
 };
 
-use derive_more::{AsRef, From, TryInto, TryIntoError};
-use parking_lot::{Mutex, MutexGuard};
+use derive_more::{From, TryInto};
+use itertools::Itertools;
+use parking_lot::Mutex;
 use roboscope_ipc::{
-    PHYSICS_UPDATE_PERIOD, SMART_DEVICES_COUNT, Sample, SimServices, Subscriber,
-    cmd::DeviceCommand,
+    Publisher, Sample, SimServices, Subscriber,
+    cmd::{DeviceCommand, RobotOutputs},
     snapshot::{DeviceReadings, DeviceSnapshot, DistanceSnapshot, GenericSnapshot, MotorSnapshot},
 };
 use static_assertions::const_assert_ne;
-use tracing::{debug, trace};
-use vex_sdk::{V5_Device, V5_DeviceT, V5_DeviceType};
+use tracing::trace;
+use vex_sdk::{V5_DeviceT, V5_DeviceType};
 
-use crate::sdk::{motor::MotorState, system::vexSystemTimeGet};
+use crate::sdk::motor::MotorState;
 
-pub static TIMESTAMP_EPOCH: LazyLock<SystemTime> = LazyLock::new(SystemTime::now);
+pub(crate) static TIMESTAMP_EPOCH: LazyLock<SystemTime> = LazyLock::new(SystemTime::now);
+pub(crate) static DEVICES_STREAM: Mutex<Option<DevicesStream>> = Mutex::new(None);
 pub static DEVICES: Mutex<Devices> = Mutex::new(Devices::new());
-pub static DEVICES_STREAM: Mutex<Option<DevicesStream>> =
-    Mutex::new(None);
 pub const NUM_DEVICES_HANDLES: usize = 23;
 
 /// Access to device readings and device I/O.
@@ -72,15 +110,19 @@ impl Devices {
     /// Apply the given device readings.
     pub fn update_readings(&mut self, sample: Sample<DeviceReadings>) {
         trace!("Committing queued sample");
+
+        // Some devices may need to be re-initialized as a different type if something new was
+        // plugged in.
+        for (device, snapshot) in self.smart_devices.iter_mut().zip(&sample.snapshots) {
+            device.set_type(snapshot.kind());
+        }
+
         self.readings = Some(sample);
     }
 
-    pub fn handle_for(&self, port: u32) -> Option<V5_DeviceT> {
-        let device = self.smart_devices.get(port as usize)?;
-        Some(ptr::from_ref(device).cast_mut().cast())
-    }
-
-    /// Try to resolve the given device handle to readings and state for a certain kind of device.
+    /// Try to resolve a device identifier to the readings and state for a certain kind of device.
+    ///
+    /// The given device can either be a port number or a device handle ([`V5_DeviceT`]).
     ///
     /// Returns `None` if the device is the wrong type.
     ///
@@ -131,13 +173,13 @@ pub trait DeviceResolvable {
 
 /// A direct smart port index.
 impl DeviceResolvable for usize {
-    fn to_port(&self, devices: &Devices) -> usize {
+    fn to_port(&self, _devices: &Devices) -> usize {
         *self
     }
 }
 
 /// A device handle.
-impl DeviceResolvable for *mut V5_Device {
+impl DeviceResolvable for V5_DeviceT {
     /// Convert the device handle to a port number.
     ///
     /// # Panics
@@ -163,7 +205,6 @@ impl DeviceResolvable for *mut V5_Device {
 }
 
 pub struct V5Device {
-    _placeholder: u32,
     last_known_type: V5_DeviceType,
     state: V5DeviceState,
 }
@@ -172,13 +213,12 @@ const_assert_ne!(size_of::<V5Device>(), 0); // Pointers to devices must be uniqu
 impl V5Device {
     pub const fn new() -> Self {
         Self {
-            _placeholder: 0,
             last_known_type: V5_DeviceType::kDeviceTypeNoSensor,
             state: V5DeviceState::None(()),
         }
     }
 
-    pub fn set_type(&mut self, kind: V5_DeviceType) {
+    fn set_type(&mut self, kind: V5_DeviceType) {
         // If the port is now connected to a concretely different kind of device, reset its state.
         // TODO: Should state be preserved over disconnects?
         if self.last_known_type == kind || kind == V5_DeviceType::kDeviceTypeNoSensor {
@@ -214,8 +254,6 @@ pub trait TrackedDevice {
     // Tracked devices must have an associated State type which can be obtained via references
     // to `V5DeviceState`. `()` is a valid kind of state, too.
     type State: HasDeviceCommand;
-
-    // fn command(state: Self::State) -> DeviceCommand;
 }
 
 impl TrackedDevice for DeviceSnapshot {
@@ -255,25 +293,39 @@ impl HasDeviceCommand for () {
     }
 }
 
-/// Updates the global device registry with the latest readings.
+/// Syncs the process's device registry with the latest data.
 #[derive(Debug)]
 pub struct DevicesStream {
     readings: Subscriber<DeviceReadings>,
+    outputs: Publisher<RobotOutputs>,
 }
 
 impl DevicesStream {
     /// Subscribe to the system device readings channel using the given IPC client.
     pub fn new(ipc: Arc<SimServices>) -> anyhow::Result<Self> {
-        let captures = ipc.device_readings()?.subscriber_builder().create()?;
+        let readings = ipc.device_readings()?.subscriber_builder().create()?;
+        let outputs = ipc.device_cmds()?.publisher_builder().create()?;
 
-        Ok(Self { readings: captures })
+        Ok(Self { readings, outputs })
     }
 
-    /// Publish the latest readings to the process's device registry.
-    pub fn update(&self) -> anyhow::Result<()> {
+    /// Sync device readings and send commands.
+    pub(crate) fn update(&self) -> anyhow::Result<()> {
+        let mut devices = DEVICES.lock();
+
+        // Any device type changes are processed now, which might change the kind of commands we're
+        // about to send if a device was re-initialized.
         if let Some(sample) = self.readings.receive()? {
-            DEVICES.lock().update_readings(sample);
+            devices.update_readings(sample);
         }
+
+        let cmds = devices
+            .smart_devices
+            .iter()
+            .map(|dev| dev.state.command())
+            .collect_array()
+            .unwrap();
+        self.outputs.send_copy(RobotOutputs(cmds))?;
 
         Ok(())
     }
