@@ -54,9 +54,7 @@ use derive_more::{From, TryInto};
 use itertools::Itertools;
 use parking_lot::Mutex;
 use roboscope_ipc::{
-    Publisher, Sample, SimServices, Subscriber,
-    cmd::{DeviceCommand, RobotOutputs},
-    snapshot::{DeviceReadings, DeviceSnapshot, DistanceSnapshot, GenericSnapshot, MotorSnapshot},
+    Publisher, SMART_DEVICES_COUNT, Sample, SimServices, Subscriber, cmd::{DeviceCommand, RobotOutputs}, snapshot::{DeviceReadings, DeviceSnapshot, DistanceSnapshot, GenericSnapshot, MotorSnapshot}
 };
 use static_assertions::const_assert_ne;
 use tracing::trace;
@@ -323,8 +321,10 @@ impl DevicesStream {
             .smart_devices
             .iter()
             .map(|dev| dev.state.command())
+            .take(SMART_DEVICES_COUNT)
             .collect_array()
             .unwrap();
+
         self.outputs.send_copy(RobotOutputs(cmds))?;
 
         Ok(())

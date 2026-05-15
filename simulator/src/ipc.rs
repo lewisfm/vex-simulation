@@ -1,4 +1,4 @@
-use std::{mem::MaybeUninit, sync::Arc, thread::{self, sleep}, time::Duration};
+use std::{mem::MaybeUninit, sync::Arc, thread};
 
 use roboscope_ipc::{
     Config, SimServices,
