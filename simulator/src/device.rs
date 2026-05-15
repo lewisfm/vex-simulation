@@ -1,6 +1,6 @@
 //! Smart device registry and state management.
 //!
-//! The smart device registry for the process should be accessed via
+//! The smart device registry for the process should be accessed via the [`DEVICES`] global.
 //!
 //! # Handles
 //!
