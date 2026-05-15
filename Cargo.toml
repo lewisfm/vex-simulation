@@ -21,5 +21,5 @@ vexide = { version = "0.8.0", features = ["startup", "macros"] }
 vex-sdk-desktop = { path = "./simulator" }
 
 [patch.crates-io]
-# Rust 1.94 support (std doesn't build on 1.95 nightly for now)
-vexide = { git = 'https://github.com/vexide/vexide.git', branch = "feat/rust-1.95" }
+# Rust >=1.94 support
+vexide = { git = 'https://github.com/vexide/vexide.git' }

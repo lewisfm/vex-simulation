@@ -6,14 +6,17 @@ RoboScope is an enhanced desktop SDK for vexide with features like display simul
 
 ## Getting started
 
-Add vex-sdk-desktop as a dependency in your Cargo.toml. Make sure you are manually managing what
-SDK your project uses instead of using vexide's `default-sdk` feature, like this:
+You need to be using a recent nightly version of Rust (see `rust-toolchain.toml`)! vexide v0.8 isn't compatible with Rust versions this new; you need to use the main branch of vexide instead until v0.9 is published.
+
+Add vex-sdk-desktop as a dependency in your Cargo.toml. Make sure you are manually managing what SDK your project uses instead of using vexide's `default-sdk` feature, like this:
 
 ```toml
-vexide = { version = "0.8.0", features = ["full"] }
+[dependencies.vexide]
+git = "https://github.com/vexide/vexide"
+features = ["full"]
 
 [target.'cfg(target_os = "vexos")'.dependencies]
-vex-sdk-jumptable = "0.1"
+vex-sdk-jumptable = { git = "https://github.com/vexide/vex-sdk" }
 
 [target.'cfg(not(target_os = "vexos"))'.dependencies]
 vex-sdk-desktop = { git = "https://github.com/lewisfm/vex-simulation" }
